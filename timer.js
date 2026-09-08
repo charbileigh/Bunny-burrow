@@ -1,7 +1,7 @@
 /* Pure timer model: wall-clock deadlines survive suspension and reopening. */
 (function (root) {
   'use strict';
-  const AMBIENCE = ['fire', 'beach', 'ocean', 'rain', 'forest', 'stream', 'forest_trees', 'lofi_petal', 'lofi_moon', 'lofi_cocoa', 'none'];
+  const AMBIENCE = ['fire', 'beach', 'ocean', 'rain', 'forest', 'stream', 'forest_trees', 'lofi_petal', 'Lavender-Evening','Rainy-Window','Sunday-Sketchbook','lofi_moon', 'lofi_cocoa', 'none'];
   const BELLS = ['bell_glass', 'bell_chime', 'bell_bowl'];
   const integer = (value, fallback, min, max) => Number.isInteger(value) && value >= min && value <= max ? value : fallback;
   const volume = (value, fallback) => Number.isFinite(value) && value >= 0 && value <= 1 ? value : fallback;
