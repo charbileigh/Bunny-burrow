@@ -2,7 +2,7 @@
 
 // Change VERSION whenever you release new app files. Cache names include the
 // deployment scope, so another app on the same host keeps its own caches.
-const VERSION = 'mobile-7-soft-bunnies';
+const VERSION = 'mobile-8-playable-lofi';
 const PREFIX = 'bunny-burrow:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const ASSETS = [
@@ -10,6 +10,7 @@ const ASSETS = [
   './bunny.png', './manifest.webmanifest', './icons/icon-192.png',
   './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
   './timer.js', './audio/fire.wav', './audio/beach.wav', './audio/ocean.wav', './audio/rain.wav', './audio/forest.wav', './audio/stream.wav', './audio/forest_trees.wav', './audio/lofi_petal.wav', './audio/lofi_moon.wav', './audio/lofi_cocoa.wav',
+  './audio/lofi_rainy_window.wav', './audio/lofi_lavender_evening.wav', './audio/lofi_sunday_sketchbook.wav',
   './audio/bell_glass.wav', './audio/bell_chime.wav', './audio/bell_bowl.wav'
 ];
 const assetURLs = new Set(ASSETS.map(path => new URL(path, self.registration.scope).href));
