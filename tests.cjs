@@ -14,11 +14,16 @@ const { BurrowTimer } = require('./timer.js');
   paused.start(50000); assert.equal(paused.state.deadline,1540000);
   const long = new BurrowTimer(t.state); assert.equal(long.advance(86400000).length,2);
   assert.equal(long.state.earnedTotal,1); assert.equal(long.state.started,false);
+  for (const ambience of ['lofi_rainy_window', 'lofi_lavender_evening', 'lofi_sunday_sketchbook']) {
+    const selected = new BurrowTimer(); selected.state.ambience = ambience;
+    const reopened = new BurrowTimer(JSON.parse(JSON.stringify(selected.state)));
+    assert.equal(reopened.state.ambience, ambience);
+  }
   const context={self:{registration:{scope:'https://example.com/bunny/'},addEventListener(){}},URL,Response,Request};
   vm.createContext(context);vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),context);
   const ranged=await context.partialAudio(new Response(new Uint8Array([0,1,2,3,4])),'bytes=1-3');
   assert.equal(ranged.status,206);assert.deepEqual([...new Uint8Array(await ranged.arrayBuffer())],[1,2,3]);
   const invalid=await context.partialAudio(new Response('abc'),'bytes=8-9');assert.equal(invalid.status,416);
   const suffix=await context.partialAudio(new Response('abc'),'bytes=-2');assert.equal(await suffix.text(),'bc');
-  console.log('PASS: saved focus/break recovery, pause/resume, long absence, single reward, audio ranges.');
+  console.log('PASS: timer recovery, new lo-fi choices, single reward and offline audio ranges.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
