@@ -37,3 +37,16 @@ dialog p{font-size:16px;line-height:1.65}dialog h3{font-size:16px;margin:22px 0 
 .bunny-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 6px}.swatch{min-width:0;min-height:64px;font-size:14px}.swatch i{box-shadow:inset 0 0 0 1px #56334426}.swatch:focus-visible{outline-offset:2px}
 @media(min-width:651px) and (max-width:900px){.bunny-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:371px) and (max-width:650px){.setting-block:first-child{grid-column:1/-1}.setting-block:nth-child(2){border-left:0;padding-left:0}.bunny-options{gap:12px 8px}}
+
+/* Live-session controls, gentle movement and the rolling 24-hour burrow. */
+.stop-button{border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:13px 17px;font-weight:700;min-height:54px}
+.stop-button:hover{border-color:var(--accent);color:var(--accent)}
+.text-button{border:0;background:transparent;color:var(--accent);padding:7px 0 0;min-height:36px;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.danger-button{border:0;background:#9a3156;color:#fff;border-radius:12px;font-weight:700;padding:12px 17px}
+.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.dialog-actions .install-button{width:auto}
+.running #bunny{animation:bunny-hop 1.9s ease-in-out infinite}
+@keyframes bunny-hop{0%,58%,100%{transform:translateY(0) scale(var(--scale,.52))}68%{transform:translateY(-11px) scale(var(--scale,.52))}77%{transform:translateY(0) scale(var(--scale,.52))}84%{transform:translateY(-4px) scale(var(--scale,.52))}}
+.bunny-options{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(min-width:651px) and (max-width:900px){.bunny-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.timer-actions{flex-wrap:wrap}.stop-button{min-height:50px}.bunny-options{grid-template-columns:repeat(4,minmax(0,1fr))}.dialog-actions{flex-direction:column-reverse}.dialog-actions button{width:100%}}
+@media(max-width:370px){.bunny-options{grid-template-columns:repeat(3,minmax(0,1fr))}.swatch{min-width:0}}
