@@ -1,35 +1,262 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fce4ed"><meta name="description" content="Grow a little bunny, one focused moment at a time. A cosy Pomodoro timer with offline nature sounds, original lo-fi loops and automatic breaks."><title>Bunny Burrow · A little time to focus</title><link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Bunny Burrow">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="style.css"></head>
-<body><div class="shell"><header><a class="brand" href="./"><span aria-hidden="true">✿</span> bunny burrow<span class="brand-note">a little time to focus</span></a><button id="theme" class="icon-button" aria-label="Switch to purple dark mode">☾ <span>Moonlight</span></button></header>
-<main><div class="topline"><span class="eyebrow">YOUR COSY FOCUS CORNER</span><span id="session-count">0 bunnies in your burrow</span></div><section class="focus-card" aria-label="Pomodoro timer"><div class="timer-side"><div class="mode-pill"><span id="mode-dot"></span><span id="mode">Focus time</span></div><h1 id="heading">Small steps.<br>Happy little hops.</h1><p id="subheading">Settle in. Your bunny grows while you focus.</p><div id="clock" role="timer" aria-label="25 minutes remaining">25:00</div><div class="timer-actions"><button class="primary" id="start"><span aria-hidden="true">▶</span> Start focusing</button><button id="stop" class="stop-button" hidden><span aria-hidden="true">■</span> Stop</button><button id="reset" class="reset" aria-label="Reset current timer" title="Reset current timer">↺</button></div><p class="next" id="next">25 min focus · then a 5 min breather</p></div>
-<div class="bunny-side"><div class="orbit" aria-hidden="true"><span>✧</span><span>✦</span><span>✧</span></div><div class="bunny-stage"><div class="halo"></div><img id="bunny" src="bunny.png" alt="A small pink bunny" draggable="false"><div class="ground"></div></div><div class="bunny-caption"><span class="eyebrow" id="bunny-name">MEET ROSIE</span><h2 id="growth-label">Little beginnings</h2><div class="growth-track" role="progressbar" aria-label="Bunny growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="growth"><div id="growth-fill"></div></div><p id="growth-message">A little focus goes a long way.</p></div></div></section>
-<div id="announcement" class="announcement" aria-live="polite"></div>
-<section class="settings-grid" aria-label="Session settings"><div class="setting-block"><div class="setting-title"><span class="step">01</span><h2>Pick your companion</h2></div><div class="bunny-options" role="group" aria-label="Bunny colour"><button class="swatch selected" style="--swatch:#f4b8c6" data-bunny="0" aria-pressed="true" aria-label="Rosie, blush pink bunny"><i aria-hidden="true"></i>Rosie</button><button class="swatch" style="--swatch:#cbb6d5" data-bunny="1" aria-pressed="false" aria-label="Plum, soft mauve bunny"><i aria-hidden="true"></i>Plum</button><button class="swatch" style="--swatch:#d9c9b7" data-bunny="2" aria-pressed="false" aria-label="Biscuit, warm beige bunny"><i aria-hidden="true"></i>Biscuit</button><button class="swatch" style="--swatch:#ece7e7" data-bunny="3" aria-pressed="false" aria-label="Pearl, pearl white bunny"><i aria-hidden="true"></i>Pearl</button><button class="swatch" style="--swatch:#b4a497" data-bunny="4" aria-pressed="false" aria-label="Cocoa, soft taupe bunny"><i aria-hidden="true"></i>Cocoa</button><button class="swatch" style="--swatch:#bfc0c5" data-bunny="5" aria-pressed="false" aria-label="Mist, silver grey bunny"><i aria-hidden="true"></i>Mist</button><button class="swatch" style="--swatch:#d3c8e8" data-bunny="6" aria-pressed="false" aria-label="Lilac, pale lilac bunny"><i aria-hidden="true"></i>Lilac</button><button class="swatch" style="--swatch:#f1cbbf" data-bunny="7" aria-pressed="false" aria-label="Peach, soft peach bunny"><i aria-hidden="true"></i>Peach</button><button class="swatch" style="--swatch:#9fb9d8" data-bunny="8" aria-pressed="false" aria-label="Bluebell, dusty blue bunny"><i aria-hidden="true"></i>Bluebell</button><button class="swatch" style="--swatch:#c95f82" data-bunny="9" aria-pressed="false" aria-label="Rosebud, deep rose bunny"><i aria-hidden="true"></i>Rosebud</button><button class="swatch" style="--swatch:#706080" data-bunny="10" aria-pressed="false" aria-label="Midnight, deep violet bunny"><i aria-hidden="true"></i>Midnight</button><button class="swatch" style="--swatch:#bd896d" data-bunny="11" aria-pressed="false" aria-label="Caramel, warm brown bunny"><i aria-hidden="true"></i>Caramel</button><button class="swatch" style="--swatch:#d9e5ea" data-bunny="12" aria-pressed="false" aria-label="Cloud, cool blue-white bunny"><i aria-hidden="true"></i>Cloud</button></div><p class="setting-note">You can switch companions while the timer is running.</p></div>
-<div class="setting-block"><div class="setting-title"><span class="step">02</span><h2>Find your rhythm</h2></div><div class="durations"><label>Focus <span><input id="focus-min" type="number" min="1" max="120" value="25" inputmode="numeric"> min</span></label><span class="divider">/</span><label>Break <span><input id="break-min" type="number" min="1" max="60" value="5" inputmode="numeric"> min</span></label></div><p class="setting-note">Adjust before starting a session.</p></div>
-<div class="setting-block"><div class="setting-title"><span class="step">03</span><h2>Make it cosy</h2></div><label class="audio-label" for="ambience">Focus sound</label>
-<div class="audio-picker"><select id="ambience"><optgroup label="Nature and ambience"><option value="fire">Crackling fire</option><option value="beach">Beach ambience</option><option value="ocean">Ocean waves</option><option value="rain">Gentle rain</option><option value="forest">Forest breeze</option><option value="stream">Flowing stream</option><option value="forest_trees">Forest trees</option></optgroup><optgroup label="Mellow lo-fi"><option value="lofi_petal">Petal study</option><option value="lofi_moon">Moonlit notes</option><option value="lofi_cocoa">Cocoa break</option><option value="lofi_rainy_window">Rainy Window</option><option value="lofi_lavender_evening">Lavender Evening</option><option value="lofi_sunday_sketchbook">Sunday Sketchbook</option></optgroup><optgroup label="Distinct lo-fi styles"><option value="lofi_jazz_cafe">Jazz-hop Café · swung</option><option value="lofi_cloud_waltz">Cloud Waltz · 3/4</option><option value="lofi_pixel_night">Pixel Night · bright</option><option value="lofi_neon_bloom">Neon Bloom · synthwave</option><option value="lofi_vinyl_keys">Vinyl Keys · mellow piano</option><option value="lofi_sleepy_strings">Sleepy Strings · acoustic</option><option value="lofi_music_box">Petal Music Box · sparkling</option></optgroup><optgroup label="No sound"><option value="none">Quiet focus</option></optgroup></select><button id="preview-ambience" type="button" class="preview-button" aria-label="Preview selected focus sound">▶</button></div>
-<label class="volume-row" for="volume">Sound volume <input id="volume" type="range" min="0" max="100" value="35"></label>
-<label class="audio-label" for="bell-sound">Ending bell</label>
-<div class="audio-picker"><select id="bell-sound"><option value="bell_glass">Glass bell</option><option value="bell_chime">Soft chime</option><option value="bell_bowl">Singing bowl</option><option value="bell_temple">Deep temple gong</option><option value="bell_twinkle">Twinkle bells</option></select><button id="preview-bell" type="button" class="preview-button" aria-label="Preview selected bell">▶</button></div>
-<label class="volume-row" for="bell-volume">Bell volume <input id="bell-volume" type="range" min="0" max="100" value="65"></label>
-<label class="sound-row bell-row"><span>Ring at focus &amp; break end</span><input id="bell" type="checkbox" role="switch" checked></label></div></section>
-<section class="meadow" aria-label="Completed bunnies"><div><h2>Your little burrow</h2><p id="meadow-note">Finish a focus session to welcome your first bunny.</p><button id="clear-burrow" class="text-button" type="button">Clear burrow</button></div><div id="bunny-collection" class="collection"><span class="empty-flower" aria-hidden="true">✿</span></div></section><section class="mobile-tools" aria-label="Mobile app">
-<div><span id="offline-status" role="status">Preparing offline mode…</span><p class="mobile-note">Background playback depends on your browser. Fully closing the app stops sound; your timer is saved.</p></div>
-<button id="install-app" class="install-button" type="button">Add to your phone</button>
-</section><details class="background-help"><summary>How background focus works</summary><p>Start your session before switching apps. Some browsers keep sound playing with the screen locked; others pause it. Lock-screen playback controls appear where supported.</p><p>If you fully close the app, audio and timed bells stop. Your session is saved, and the timer and bunny growth catch up when you reopen it. Offline mode saves the app’s files—it does not grant permission to run after closure.</p><p id="audio-status" role="status">Tap a preview button to try each sound.</p><button id="resume-audio" class="install-button" type="button" hidden>Resume sound</button></details></main><footer><span>One thing at a time. You’re doing just fine.</span><span>Made for softer, more focused days ♡</span></footer></div><dialog id="install-dialog" aria-labelledby="install-title">
-<div class="dialog-heading"><h2 id="install-title">Your own little burrow</h2><button id="close-install" type="button" class="reset" aria-label="Close installation instructions">×</button></div>
-<p>Keep Bunny Burrow on your home screen and open it as an app.</p>
-<div id="install-guidance"><h3>iPhone or iPad</h3><p>Open this page in Safari. Tap Share, then Add to Home Screen. If shown, turn on Open as Web App, then tap Add.</p><h3>Android</h3><p>Open this page in Chrome. Use the browser menu and choose Install app or Add to Home screen. The wording may vary.</p></div>
-<button id="native-install" class="primary" type="button" hidden>Install Bunny Burrow</button>
-<p id="install-feedback" role="status"></p>
-<p class="mobile-note">Open the hosted HTTPS link first. Offline mode is ready when the app says “Ready offline”. Your timer, choices and bunnies are saved on this device. Reopening catches up with elapsed time. Fully closing the app prevents sounds and alarms until it is opened again.</p>
-</dialog>
-<dialog id="clear-dialog" aria-labelledby="clear-title"><div class="dialog-heading"><h2 id="clear-title">Clear your little burrow?</h2><button id="close-clear" type="button" class="reset" aria-label="Keep my bunnies">×</button></div><p>This removes the bunnies currently saved on this device. Your timer and sound choices will stay just as they are.</p><div class="dialog-actions"><button id="cancel-clear" class="install-button" type="button">Keep my bunnies</button><button id="confirm-clear" class="danger-button" type="button">Clear burrow</button></div></dialog>
-<audio playsinline id="ambient-audio" preload="none" loop></audio><audio playsinline id="bell-audio" preload="auto"></audio><audio playsinline id="preview-audio" preload="none"></audio><script src="timer.js"></script><script src="app.js"></script><script src="mobile.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fce4ed">
+  <meta name="description" content="Grow a little bunny while you focus. A cosy, private Pomodoro PWA with goals, statistics, collections and offline soundscapes.">
+  <title>Bunny Burrow · A little time to focus</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bunny Burrow">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <a class="brand" href="./"><span aria-hidden="true">✿</span> bunny burrow<span class="brand-note">a little time to focus</span></a>
+      <div class="header-actions">
+        <button id="focus-mode" class="icon-button" type="button">◉ <span>Focus view</span></button>
+        <button id="theme" class="icon-button" type="button" aria-label="Switch to purple dark mode">☾ <span>Moonlight</span></button>
+      </div>
+    </header>
+
+    <main>
+      <div class="topline">
+        <span class="eyebrow">YOUR COSY FOCUS CORNER</span>
+        <span id="session-count">0 bunnies in your burrow</span>
+      </div>
+
+      <section class="focus-card" aria-label="Pomodoro timer">
+        <button id="exit-focus-mode" class="exit-focus" type="button" hidden>Exit focus view</button>
+        <div class="timer-side">
+          <label class="task-label" for="task">What will you focus on?</label>
+          <input id="task" class="task-input" type="text" maxlength="100" placeholder="One clear task">
+          <div class="mode-pill"><span id="mode-dot"></span><span id="mode">Focus time</span></div>
+          <h1 id="heading">Small steps.<br>Happy little hops.</h1>
+          <p id="subheading">Settle in. Your bunny grows while you focus.</p>
+          <p id="focus-task" class="focus-task">One gentle task at a time</p>
+          <div id="clock" role="timer" aria-label="25 minutes remaining">25:00</div>
+          <div class="timer-actions">
+            <button class="primary" id="start"><span aria-hidden="true">▶</span> Start focusing</button>
+            <button id="stop" class="stop-button" hidden><span aria-hidden="true">■</span> Stop</button>
+            <button id="reset" class="reset" aria-label="Reset current timer" title="Reset current timer">↺</button>
+          </div>
+          <p class="next" id="next">25 min focus · then a 5 min breather</p>
+          <p class="break-tip" id="break-tip" hidden></p>
+        </div>
+
+        <div class="bunny-side">
+          <div class="orbit" aria-hidden="true"><span>✧</span><span>✦</span><span>✧</span></div>
+          <div class="bunny-stage">
+            <div class="halo"></div>
+            <img id="bunny" src="bunny.png" alt="A small pink bunny" draggable="false">
+            <div class="ground"></div>
+          </div>
+          <div class="bunny-caption">
+            <span class="eyebrow" id="bunny-name">MEET ROSIE</span>
+            <h2 id="growth-label">Little beginnings</h2>
+            <div class="growth-track" role="progressbar" aria-label="Bunny growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="growth"><div id="growth-fill"></div></div>
+            <p id="growth-message">A little focus goes a long way.</p>
+          </div>
+        </div>
+      </section>
+
+      <div id="announcement" class="announcement" aria-live="polite"></div>
+
+      <section class="quick-grid" aria-label="Focus plan">
+        <article class="quick-card goal-card">
+          <div>
+            <span class="eyebrow">TODAY’S GOAL</span>
+            <strong id="goal-copy">0 of 4 sessions today</strong>
+          </div>
+          <label for="goal">Goal <input id="goal" type="number" min="1" max="20" value="4"> sessions</label>
+          <div id="goal-progress" class="goal-track" role="progressbar" aria-label="Daily focus goal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="goal-fill"></div></div>
+        </article>
+        <article class="quick-card preset-card">
+          <div>
+            <span class="eyebrow">FOCUS PRESETS</span>
+            <strong>Choose your rhythm</strong>
+          </div>
+          <select id="preset" aria-label="Focus preset"></select>
+          <div class="button-row">
+            <button id="apply-preset" class="small-button" type="button">Apply preset</button>
+            <button id="save-preset" class="text-button" type="button">Save current</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="settings-grid" aria-label="Session settings">
+        <div class="setting-block">
+          <div class="setting-title"><span class="step">01</span><h2>Pick your companion</h2></div>
+          <div class="bunny-options" role="group" aria-label="Bunny colour">
+            <button class="swatch selected" style="--swatch:#f4b8c6" data-bunny="0" aria-pressed="true" aria-label="Rosie, blush pink bunny"><i aria-hidden="true"></i>Rosie</button>
+            <button class="swatch" style="--swatch:#cbb6d5" data-bunny="1" aria-pressed="false" aria-label="Plum, soft mauve bunny"><i aria-hidden="true"></i>Plum</button>
+            <button class="swatch" style="--swatch:#d9c9b7" data-bunny="2" aria-pressed="false" aria-label="Biscuit, warm beige bunny"><i aria-hidden="true"></i>Biscuit</button>
+            <button class="swatch" style="--swatch:#ece7e7" data-bunny="3" aria-pressed="false" aria-label="Pearl, pearl white bunny"><i aria-hidden="true"></i>Pearl</button>
+            <button class="swatch" style="--swatch:#b4a497" data-bunny="4" aria-pressed="false" aria-label="Cocoa, soft taupe bunny"><i aria-hidden="true"></i>Cocoa</button>
+            <button class="swatch" style="--swatch:#bfc0c5" data-bunny="5" aria-pressed="false" aria-label="Mist, silver grey bunny"><i aria-hidden="true"></i>Mist</button>
+            <button class="swatch" style="--swatch:#d3c8e8" data-bunny="6" aria-pressed="false" aria-label="Lilac, pale lilac bunny"><i aria-hidden="true"></i>Lilac</button>
+            <button class="swatch" style="--swatch:#f1cbbf" data-bunny="7" aria-pressed="false" aria-label="Peach, soft peach bunny"><i aria-hidden="true"></i>Peach</button>
+            <button class="swatch" style="--swatch:#9fb9d8" data-bunny="8" aria-pressed="false" aria-label="Bluebell, dusty blue bunny"><i aria-hidden="true"></i>Bluebell</button>
+            <button class="swatch" style="--swatch:#c95f82" data-bunny="9" aria-pressed="false" aria-label="Rosebud, deep rose bunny"><i aria-hidden="true"></i>Rosebud</button>
+            <button class="swatch" style="--swatch:#706080" data-bunny="10" aria-pressed="false" aria-label="Midnight, deep violet bunny"><i aria-hidden="true"></i>Midnight</button>
+            <button class="swatch" style="--swatch:#bd896d" data-bunny="11" aria-pressed="false" aria-label="Caramel, warm brown bunny"><i aria-hidden="true"></i>Caramel</button>
+            <button class="swatch" style="--swatch:#d9e5ea" data-bunny="12" aria-pressed="false" aria-label="Cloud, cool blue-white bunny"><i aria-hidden="true"></i>Cloud</button>
+          </div>
+          <p class="setting-note">Switch companions at any point during a session.</p>
+        </div>
+
+        <div class="setting-block">
+          <div class="setting-title"><span class="step">02</span><h2>Plan your cycle</h2></div>
+          <div class="duration-grid">
+            <label>Focus <span><input id="focus-min" type="number" min="1" max="120" value="25"> min</span></label>
+            <label>Short break <span><input id="break-min" type="number" min="1" max="60" value="5"> min</span></label>
+            <label>Long break <span><input id="long-break-min" type="number" min="1" max="60" value="15"> min</span></label>
+            <label>Long break after <span><input id="cycle-length" type="number" min="2" max="8" value="4"> sessions</span></label>
+          </div>
+          <p id="cycle-status" class="setting-note">0 of 4 focus sessions completed in this cycle</p>
+        </div>
+
+        <div class="setting-block sound-settings">
+          <div class="setting-title"><span class="step">03</span><h2>Make it cosy</h2></div>
+          <label class="audio-label" for="ambience">Focus sound</label>
+          <div class="audio-picker">
+            <select id="ambience">
+              <optgroup label="Nature and ambience">
+                <option value="fire">Crackling fire</option><option value="beach">Beach ambience</option><option value="ocean">Ocean waves</option><option value="rain">Gentle rain</option><option value="forest">Forest breeze</option><option value="stream">Flowing stream</option><option value="forest_trees">Forest trees</option>
+              </optgroup>
+              <optgroup label="Mellow lo-fi">
+                <option value="lofi_petal">Petal study</option><option value="lofi_moon">Moonlit notes</option><option value="lofi_cocoa">Cocoa break</option><option value="lofi_rainy_window">Rainy Window</option><option value="lofi_lavender_evening">Lavender Evening</option><option value="lofi_sunday_sketchbook">Sunday Sketchbook</option>
+              </optgroup>
+              <optgroup label="Distinct lo-fi styles">
+                <option value="lofi_jazz_cafe">Jazz-hop Café · swung</option><option value="lofi_cloud_waltz">Cloud Waltz · 3/4</option><option value="lofi_pixel_night">Pixel Night · bright</option><option value="lofi_neon_bloom">Neon Bloom · synthwave</option><option value="lofi_vinyl_keys">Vinyl Keys · mellow piano</option><option value="lofi_sleepy_strings">Sleepy Strings · acoustic</option><option value="lofi_music_box">Petal Music Box · sparkling</option>
+              </optgroup>
+              <option value="none">Quiet focus</option>
+            </select>
+            <button id="preview-ambience" type="button" class="preview-button" aria-label="Preview selected focus sound">▶</button>
+          </div>
+          <div class="favourite-row"><button id="favorite-sound" class="favorite-button" type="button">☆ Favourite</button><span id="shuffle-note">Play the selected focus sound.</span></div>
+          <label class="volume-row" for="volume">Sound volume <input id="volume" type="range" min="0" max="100" value="35"></label>
+          <label class="audio-label" for="break-ambience">Break sound</label>
+          <select id="break-ambience" class="wide-select">
+            <option value="none">Quiet break</option><option value="rain">Gentle rain</option><option value="forest">Forest breeze</option><option value="stream">Flowing stream</option><option value="ocean">Ocean waves</option><option value="lofi_cloud_waltz">Cloud Waltz</option><option value="lofi_sleepy_strings">Sleepy Strings</option>
+          </select>
+          <label class="audio-label" for="bell-sound">Ending bell</label>
+          <div class="audio-picker">
+            <select id="bell-sound"><option value="bell_glass">Glass bell</option><option value="bell_chime">Soft chime</option><option value="bell_bowl">Singing bowl</option><option value="bell_temple">Deep temple gong</option><option value="bell_twinkle">Twinkle bells</option></select>
+            <button id="preview-bell" type="button" class="preview-button" aria-label="Preview selected bell">▶</button>
+          </div>
+          <label class="volume-row" for="bell-volume">Bell volume <input id="bell-volume" type="range" min="0" max="100" value="65"></label>
+          <div class="toggle-stack">
+            <label class="sound-row"><span>Shuffle favourite sounds</span><input id="shuffle-favourites" type="checkbox" role="switch"></label>
+            <label class="sound-row"><span>Gentle audio fades</span><input id="fade-audio" type="checkbox" role="switch" checked></label>
+            <label class="sound-row"><span>Ring at focus and break end</span><input id="bell" type="checkbox" role="switch" checked></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="meadow" aria-label="Completed bunnies">
+        <div><h2>Your little burrow</h2><p id="meadow-note">Finish a focus session to welcome your first bunny.</p><button id="clear-burrow" class="text-button" type="button">Clear burrow</button></div>
+        <div id="bunny-collection" class="collection"><span class="empty-flower" aria-hidden="true">✿</span></div>
+      </section>
+
+      <section class="progress-hub" aria-labelledby="progress-title">
+        <div class="section-heading"><div><span class="eyebrow">YOUR PROGRESS</span><h2 id="progress-title">The paths you’ve made</h2></div><p>Saved privately on this device.</p></div>
+        <div class="stat-grid">
+          <article><span>Today</span><strong id="stat-today">0 min</strong></article>
+          <article><span>This week</span><strong id="stat-week">0 min</strong></article>
+          <article><span>Current streak</span><strong id="stat-streak">0 days</strong></article>
+          <article><span>All sessions</span><strong id="stat-sessions">0</strong></article>
+          <article><span>Favourite bunny</span><strong id="stat-bunny">Not yet</strong></article>
+          <article><span>Favourite sound</span><strong id="stat-sound">Not yet</strong></article>
+        </div>
+        <div class="week-panel"><h3>Last seven days</h3><div id="week-chart" class="week-chart" aria-label="Focus minutes during the last seven days"></div></div>
+      </section>
+
+      <details class="feature-panel" open>
+        <summary><span><span class="eyebrow">COLLECTION BOOK</span><strong>Your companions</strong></span><span aria-hidden="true">＋</span></summary>
+        <div id="collection-book" class="collection-book"></div>
+      </details>
+
+      <details class="feature-panel">
+        <summary><span><span class="eyebrow">LITTLE MILESTONES</span><strong>Achievement badges</strong></span><span aria-hidden="true">＋</span></summary>
+        <div id="achievement-list" class="achievement-list"></div>
+      </details>
+
+      <details class="feature-panel">
+        <summary><span><span class="eyebrow">SESSION HISTORY</span><strong>Your recent focus</strong></span><span aria-hidden="true">＋</span></summary>
+        <ul id="history-list" class="history-list"></ul>
+      </details>
+
+      <section class="tools-grid">
+        <article class="tool-card">
+          <span class="eyebrow">GENTLE REMINDERS</span>
+          <h2>Timer notifications</h2>
+          <label class="sound-row"><span>Notify me when timers finish</span><input id="notifications" type="checkbox" role="switch"></label>
+          <p id="notification-status" class="setting-note" role="status"></p>
+        </article>
+        <article class="tool-card">
+          <span class="eyebrow">BACKUP AND RESTORE</span>
+          <h2>Keep your progress portable</h2>
+          <p>Download your settings and history, then restore them on another device.</p>
+          <div class="button-row">
+            <button id="export-backup" class="small-button" type="button">Export backup</button>
+            <label class="file-button">Restore backup<input id="import-backup" type="file" accept="application/json,.json"></label>
+          </div>
+          <p id="data-status" class="setting-note" role="status"></p>
+        </article>
+      </section>
+
+      <section class="mobile-tools" aria-label="Mobile app">
+        <div><span id="offline-status" role="status">Preparing offline mode…</span><p class="mobile-note">Background playback depends on your browser. Fully closing the app stops sound; your timer is saved.</p></div>
+        <button id="install-app" class="install-button" type="button">Add to your phone</button>
+      </section>
+
+      <details id="background-help" class="background-help">
+        <summary>How background focus works</summary>
+        <p>Start your session before switching apps. Some browsers keep sound playing with the screen locked; others pause it. Lock-screen playback controls appear where supported.</p>
+        <p>If you fully close the app, audio, notifications and timed bells may stop. Your session is saved, and the timer catches up when you reopen it.</p>
+        <p id="audio-status" role="status">Tap a preview button to try each sound.</p>
+        <button id="resume-audio" class="install-button" type="button" hidden>Resume sound</button>
+      </details>
+    </main>
+
+    <footer><span>One thing at a time. You’re doing just fine.</span><span>Made for softer, more focused days ♡</span></footer>
+  </div>
+
+  <dialog id="install-dialog" aria-labelledby="install-title">
+    <div class="dialog-heading"><h2 id="install-title">Your own little burrow</h2><button id="close-install" type="button" class="reset" aria-label="Close installation instructions">×</button></div>
+    <p>Keep Bunny Burrow on your home screen and open it as an app.</p>
+    <div id="install-guidance"><h3>iPhone or iPad</h3><p>Open this page in Safari. Tap Share, then Add to Home Screen.</p><h3>Android</h3><p>Open this page in Chrome. Use the browser menu and choose Install app or Add to Home screen.</p></div>
+    <button id="native-install" class="primary" type="button" hidden>Install Bunny Burrow</button>
+    <p id="install-feedback" role="status"></p>
+    <p class="mobile-note">Wait for “Ready offline” before disconnecting. Your timer, settings, history and bunnies are stored only on this device.</p>
+  </dialog>
+
+  <dialog id="clear-dialog" aria-labelledby="clear-title">
+    <div class="dialog-heading"><h2 id="clear-title">Clear your little burrow?</h2><button id="close-clear" type="button" class="reset" aria-label="Keep my bunnies">×</button></div>
+    <p>This removes the bunnies currently displayed in your burrow. Your focus history, timer and preferences remain safe.</p>
+    <div class="dialog-actions"><button id="cancel-clear" class="install-button" type="button">Keep my bunnies</button><button id="confirm-clear" class="danger-button" type="button">Clear burrow</button></div>
+  </dialog>
+
+  <dialog id="preset-dialog" aria-labelledby="preset-title">
+    <div class="dialog-heading"><h2 id="preset-title">Save this focus rhythm</h2><button id="close-preset" type="button" class="reset" aria-label="Close">×</button></div>
+    <label class="dialog-label" for="preset-name">Preset name</label>
+    <input id="preset-name" class="task-input" type="text" maxlength="24" placeholder="e.g. Dissertation hour">
+    <p id="preset-feedback" role="status"></p>
+    <div class="dialog-actions"><button id="cancel-preset" class="install-button" type="button">Cancel</button><button id="confirm-preset" class="primary compact" type="button">Save preset</button></div>
+  </dialog>
+
+  <audio playsinline id="ambient-audio" preload="none" loop></audio>
+  <audio playsinline id="bell-audio" preload="auto"></audio>
+  <audio playsinline id="preview-audio" preload="none"></audio>
+  <script src="timer.js"></script>
+  <script src="app.js"></script>
+  <script src="mobile.js"></script>
+</body>
+</html>

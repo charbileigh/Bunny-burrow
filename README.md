@@ -6,6 +6,15 @@ your phone's browser. No native wrapper, server, build step or API key is needed
 
 ## What changed
 
+- Daily session goals with a visible progress bar.
+- Task intentions saved with each completed focus session.
+- Study Sprint, Deep Work and Quick Task presets, plus up to eight custom presets.
+- Configurable short/long breaks and two-to-eight-session Pomodoro cycles.
+- Daily and weekly focus minutes, streaks, favourites and a seven-day chart.
+- Search-free recent session history, a full companion collection book and five achievement badges.
+- Gentle break suggestions, optional browser notifications and a distraction-free focus view.
+- Favourite sound management, per-session shuffle, separate break ambience and gentle audio fades.
+- Local JSON backup and restore for settings, history and progress.
 - Focus sound picker with seven ambient choices, thirteen deliberately varied lo-fi tracks or quiet focus.
 - Five ending bells, including a deep temple gong and a bright twinkle sequence.
 - Pause, continue or fully stop a session without earning an unfinished bunny.
@@ -54,7 +63,7 @@ this deliverable stays a PWA as requested.
    If the old version remains, repeat after the update has downloaded.
 6. Wait for **Ready offline** before going offline.
 
-The new service worker uses cache version `mobile-10-live-controls`. An update waits
+The new service worker uses cache version `mobile-11-focus-garden`. An update waits
 until old app windows close so it does not replace files during a focus session.
 Normal updates do not clear saved progress. Do not clear site data unless you
 intend to reset the app's saved timer, settings and bunnies as well.
@@ -103,12 +112,14 @@ policies can affect what you hear.
 
 ## Saved state
 
-The timer, preferences and bunny history are stored locally for this host/path.
-They are not sent to a server or synced between devices. Each earned bunny is
-time-stamped and remains visible for 24 hours. The Clear burrow button removes
-them immediately without changing timer or sound settings. Clearing website data
-can also erase this state. The app warns if device storage is unavailable. Use
-one open window for playback to avoid competing audio.
+The timer, preferences, task, presets, focus history and bunny history are stored
+locally for this host/path. They are not sent to a server or synced between
+devices. Each earned bunny is time-stamped and remains visible for 24 hours,
+while long-term session history remains available for statistics and the
+collection book. The Clear burrow button removes the currently displayed
+bunnies without erasing focus history. Export a JSON backup before clearing
+website data or moving devices. Use one open window for playback to avoid
+competing audio.
 
 ## Files
 
@@ -134,19 +145,22 @@ installation/build command for the downloadable PWA.
 
 ## Validation and phone checks
 
-Run `node tests.cjs` to check timer restoration, pause/resume, automatic breaks,
-reward deduplication and offline audio ranges. JavaScript syntax and bundled
-asset references were also checked during this update. Physical-phone background
-playback and installation have not been tested here. Try a one-minute focus and
-break, each sound, offline reopening and screen locking on your own phone.
+Run `node tests.cjs` to check timer restoration, pause/resume, long-break
+cycles, presets, history, statistics, achievements, backup restoration,
+version-3/version-4 migration and offline audio ranges. JavaScript syntax and
+bundled asset references are also checked. Physical-phone notification,
+background playback and installation behaviour still depends on the browser
+and operating system. Try a one-minute focus and break, offline reopening and
+screen locking on your own phone.
 
 ## This update
 
 The supplied ZIP already contained the sound pickers and offline timer model.
-This revision preserves them and improves automatic audio resume on returning,
-adds clear recovery messages after a focus session ends while away, prevents a
-repeated media Play command from restarting a deadline, and refreshes the offline
-cache. Existing version-3 saved sessions and bunny history are retained.
+This revision preserves the timer, audio and PWA foundation while adding a
+local-first planning and progress layer. Existing version-3 and version-4 saved
+sessions and bunny history migrate automatically. The long-term history begins
+with focus sessions completed after this update because older saved data did not
+contain completion details such as tasks, duration or sound.
 
 ## Browser references
 

@@ -17,39 +17,57 @@ const companions = [
   { name: 'Cloud', color: 'cool blue-white', filter: 'grayscale(.75) sepia(.08) hue-rotate(150deg) saturate(.38) brightness(1.08)' }
 ];
 const soundNames = {
-  fire: 'Crackling fire',
-  beach: 'Beach ambience',
-  ocean: 'Ocean waves',
-  rain: 'Gentle rain',
-  forest: 'Forest breeze',
-  stream: 'Flowing stream',
-  forest_trees: 'Forest trees',
-  lofi_petal: 'Lo-fi · Petal study',
-  lofi_moon: 'Lo-fi · Moonlit notes',
-  lofi_cocoa: 'Lo-fi · Cocoa break',
-  lofi_rainy_window: 'Lo-fi · Rainy Window',
-  lofi_lavender_evening: 'Lo-fi · Lavender Evening',
-  lofi_sunday_sketchbook: 'Lo-fi · Sunday Sketchbook',
-  lofi_jazz_cafe: 'Lo-fi · Jazz-hop Café',
-  lofi_cloud_waltz: 'Lo-fi · Cloud Waltz',
-  lofi_pixel_night: 'Lo-fi · Pixel Night',
-  lofi_neon_bloom: 'Lo-fi · Neon Bloom',
-  lofi_vinyl_keys: 'Lo-fi · Vinyl Keys',
-  lofi_sleepy_strings: 'Lo-fi · Sleepy Strings',
-  lofi_music_box: 'Lo-fi · Petal Music Box',
+  fire: 'Crackling fire', beach: 'Beach ambience', ocean: 'Ocean waves',
+  rain: 'Gentle rain', forest: 'Forest breeze', stream: 'Flowing stream',
+  forest_trees: 'Forest trees', lofi_petal: 'Petal study',
+  lofi_moon: 'Moonlit notes', lofi_cocoa: 'Cocoa break',
+  lofi_rainy_window: 'Rainy Window', lofi_lavender_evening: 'Lavender Evening',
+  lofi_sunday_sketchbook: 'Sunday Sketchbook', lofi_jazz_cafe: 'Jazz-hop Café',
+  lofi_cloud_waltz: 'Cloud Waltz', lofi_pixel_night: 'Pixel Night',
+  lofi_neon_bloom: 'Neon Bloom', lofi_vinyl_keys: 'Vinyl Keys',
+  lofi_sleepy_strings: 'Sleepy Strings', lofi_music_box: 'Petal Music Box',
   none: 'Quiet focus'
 };
+const breakSuggestions = [
+  'Roll your shoulders slowly and let them soften.',
+  'Look at something far away for twenty seconds.',
+  'Take a few sips of water.',
+  'Stand up and stretch your legs gently.',
+  'Take five slow breaths before your next session.',
+  'Rest your hands and unclench your jaw.',
+  'Walk around for a minute if you can.'
+];
+const achievementInfo = [
+  ['first_hop', 'First Hop', 'Complete your first focus session.'],
+  ['cosy_morning', 'Cosy Morning', 'Finish a session before 09:00.'],
+  ['deep_burrow', 'Deep Burrow', 'Focus for 100 minutes in one day.'],
+  ['little_routine', 'Little Routine', 'Build a three-day focus streak.'],
+  ['quiet_companion', 'Quiet Companion', 'Complete a session in quiet mode.']
+];
 const storageKey = 'bunny-burrow-v3:' + location.pathname.replace(/index\.html$/, '');
+const uiKey = 'bunny-burrow-ui:' + location.pathname.replace(/index\.html$/, '');
 let raw;
 try { raw = JSON.parse(localStorage.getItem(storageKey)); } catch {}
 let timer = new BurrowTimer(raw);
-const ambient = $('ambient-audio'), bellPlayer = $('bell-audio'), preview = $('preview-audio');
-let wakeLock = null, wakeLockPending = false, previewTimeout, lastCollection = '';
+const ambient = $('ambient-audio');
+const bellPlayer = $('bell-audio');
+const preview = $('preview-audio');
+let wakeLock = null;
+let wakeLockPending = false;
+let previewTimeout;
+let ambientFadeTimer;
+let lastCollection = '';
+let lastInsights = '';
 
 function save() {
   try { localStorage.setItem(storageKey, JSON.stringify(timer.serialise())); }
-  catch { $('announcement').textContent = 'Device storage is unavailable. Keep this page open to retain your session.'; }
+  catch { announce('Device storage is unavailable. Keep this page open to retain your session.'); }
 }
+
+function announce(message) {
+  $('announcement').textContent = message;
+}
+
 function setTheme(dark) {
   document.body.classList.toggle('dark', dark);
   $('theme').innerHTML = dark ? '☀ <span>Daylight</span>' : '☾ <span>Moonlight</span>';
@@ -57,26 +75,63 @@ function setTheme(dark) {
   document.querySelector('meta[name="theme-color"]').content = dark ? '#241a35' : '#fce4ed';
   try { localStorage.setItem('burrow-dark', String(dark)); } catch {}
 }
-try { setTheme(localStorage.getItem('burrow-dark') === 'true'); } catch { setTheme(false); }
-$('theme').onclick = () => setTheme(!document.body.classList.contains('dark'));
+
+function setFocusMode(enabled, requestFullscreen = false) {
+  document.body.classList.toggle('focus-mode', enabled);
+  $('focus-mode').hidden = enabled;
+  $('exit-focus-mode').hidden = !enabled;
+  try { localStorage.setItem(uiKey, JSON.stringify({ focusMode: enabled })); } catch {}
+  if (enabled && requestFullscreen && document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else if (!enabled && document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+try {
+  setTheme(localStorage.getItem('burrow-dark') === 'true');
+  const savedUi = JSON.parse(localStorage.getItem(uiKey) || '{}');
+  setFocusMode(savedUi.focusMode === true);
+} catch {
+  setTheme(false);
+  setFocusMode(false);
+}
+
+function formatClock(milliseconds) {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  return String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+}
+
+function currentSound() {
+  const s = timer.state;
+  return s.mode === 'break' ? s.breakAmbience : s.activeAmbience;
+}
 
 function render() {
-  const s = timer.state, bunny = companions[s.chosen];
-  const secs = Math.max(0, Math.ceil(s.remaining / 1000));
-  const clock = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+  const s = timer.state;
+  const bunny = companions[s.chosen];
+  const seconds = Math.max(0, Math.ceil(s.remaining / 1000));
+  const clock = formatClock(s.remaining);
   $('clock').textContent = clock;
-  $('clock').setAttribute('aria-label', `${Math.floor(secs / 60)} minutes ${secs % 60} seconds remaining`);
+  $('clock').setAttribute('aria-label', `${Math.floor(seconds / 60)} minutes ${seconds % 60} seconds remaining`);
   document.title = (s.started ? clock + ' · ' : '') + 'Bunny Burrow';
-  $('mode').textContent = s.mode === 'focus' ? 'Focus time' : 'Break time';
+  $('mode').textContent = s.mode === 'focus' ? 'Focus time' : s.isLongBreak ? 'Long break' : 'Break time';
   $('start').innerHTML = s.running ? 'Ⅱ &nbsp; Pause' : s.started ? '▶ &nbsp; Continue' : s.mode === 'focus' ? '▶ &nbsp; Start focusing' : '▶ &nbsp; Start break';
   $('stop').hidden = !s.started;
   document.body.classList.toggle('running', s.running);
-  $('focus-min').disabled = s.started;
-  $('break-min').disabled = s.started;
-  document.querySelectorAll('.swatch').forEach(b => {
-    const selected = Number(b.dataset.bunny) === s.chosen;
-    b.classList.toggle('selected', selected);
-    b.setAttribute('aria-pressed', String(selected));
+  document.body.classList.toggle('resting', s.mode === 'break');
+  for (const id of ['focus-min', 'break-min', 'long-break-min', 'cycle-length', 'preset', 'apply-preset', 'save-preset']) {
+    $(id).disabled = s.started;
+  }
+  $('task').disabled = s.started;
+  $('task').value = s.task;
+  $('focus-task').textContent = s.task || 'One gentle task at a time';
+  $('cycle-status').textContent = `${s.cycleProgress} of ${s.cycleLength} focus sessions completed in this cycle`;
+
+  document.querySelectorAll('.swatch').forEach(button => {
+    const selected = Number(button.dataset.bunny) === s.chosen;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
   });
   const progress = s.mode === 'break' ? 1 : Math.max(0, Math.min(1, 1 - s.remaining / timer.duration()));
   $('bunny').style.setProperty('--scale', String(.52 + progress * .48));
@@ -85,44 +140,176 @@ function render() {
   $('bunny').alt = `A ${progress < .5 ? 'small' : 'grown'} ${bunny.color} bunny`;
   $('growth-fill').style.width = progress * 100 + '%';
   $('growth').setAttribute('aria-valuenow', String(Math.round(progress * 100)));
-  $('growth-label').textContent = s.mode === 'break' ? 'All grown up!' : progress < .25 ? 'Little beginnings' : progress < .6 ? 'Growing with you' : progress < .9 ? 'Look at you grow' : 'Almost there!';
-  $('growth-message').textContent = s.mode === 'break' ? 'Your bunny is taking a breather, too.' : !progress ? 'A little focus goes a long way.' : Math.round(progress * 100) + '% grown · keep going gently';
+  $('growth-label').textContent = s.mode === 'break' ? 'Resting together' : progress < .25 ? 'Little beginnings' : progress < .6 ? 'Growing with you' : progress < .9 ? 'Look at you grow' : 'Almost there!';
+  $('growth-message').textContent = s.mode === 'break' ? 'Your bunny is having a little breather, too.' : !progress ? 'A little focus goes a long way.' : Math.round(progress * 100) + '% grown · keep going gently';
   $('heading').innerHTML = s.mode === 'break' ? 'A little rest.<br>You’ve earned it.' : 'Small steps.<br>Happy little hops.';
   $('subheading').textContent = s.mode === 'break' ? 'Your bunny is all grown up. Time for a breather.' : 'Settle in. Your bunny grows while you focus.';
-  $('next').textContent = s.mode === 'focus' ? `${s.focusMinutes} min focus · then a ${s.breakMinutes} min breather` : 'Stretch, sip some water, and rest your eyes.';
+  $('next').textContent = s.mode === 'focus'
+    ? `${s.focusMinutes} min focus · then a ${s.breakMinutes} min breather`
+    : s.isLongBreak ? `${s.longBreakMinutes} minute long break · your cycle is complete` : 'Stretch, sip some water, and rest your eyes.';
+  $('break-tip').hidden = s.mode !== 'break';
+  $('break-tip').textContent = s.mode === 'break' ? breakSuggestions[s.history.length % breakSuggestions.length] : '';
   $('preview-ambience').disabled = s.ambience === 'none';
-  $('resume-audio').hidden = !(s.running && s.mode === 'focus' && s.ambience !== 'none' && ambient.paused);
-  const collectionKey = s.earnedTotal + ':' + s.earned.map(entry => entry.bunny + '@' + entry.at).join(',');
-  if (collectionKey !== lastCollection) {
-    lastCollection = collectionKey;
-    const visible = s.earned.length;
-    $('session-count').textContent = `${visible} ${visible === 1 ? 'bunny' : 'bunnies'} in your burrow`;
-    $('meadow-note').textContent = visible ? `${visible} little ${visible === 1 ? 'reason' : 'reasons'} to be proud of yourself. Bunnies stay here for 24 hours.` : 'Finish a focus session to welcome your first bunny. Bunnies stay for 24 hours.';
-    $('clear-burrow').hidden = visible === 0;
-    $('bunny-collection').replaceChildren();
-    s.earned.forEach(entry => {
-      const index = entry.bunny;
-      const image = document.createElement('img'); image.src = 'bunny.png';
-      image.alt = companions[index].name + ' — completed focus session';
-      image.style.filter = companions[index].filter; $('bunny-collection').append(image);
+  $('favorite-sound').disabled = s.ambience === 'none';
+  $('favorite-sound').classList.toggle('selected', s.favourites.includes(s.ambience));
+  $('favorite-sound').textContent = s.favourites.includes(s.ambience) ? '★ Favourite' : '☆ Favourite';
+  $('shuffle-note').textContent = s.shuffleFavourites
+    ? `${s.favourites.length || 'No'} favourite ${s.favourites.length === 1 ? 'sound' : 'sounds'} available for the next focus session.`
+    : 'Play the selected focus sound.';
+  $('resume-audio').hidden = !(s.running && currentSound() !== 'none' && ambient.paused);
+  $('goal').value = s.dailyGoal;
+  $('shuffle-favourites').checked = s.shuffleFavourites;
+  $('fade-audio').checked = s.fadeAudio;
+  $('notifications').checked = s.notificationsEnabled;
+
+  renderCollection();
+  renderInsights();
+}
+
+function renderCollection() {
+  const s = timer.state;
+  const key = s.earnedTotal + ':' + s.earned.map(entry => entry.bunny + '@' + entry.at).join(',');
+  if (key === lastCollection) return;
+  lastCollection = key;
+  const visible = s.earned.length;
+  $('session-count').textContent = `${visible} ${visible === 1 ? 'bunny' : 'bunnies'} in your burrow`;
+  $('meadow-note').textContent = visible
+    ? `${visible} little ${visible === 1 ? 'reason' : 'reasons'} to be proud of yourself. Bunnies stay here for 24 hours.`
+    : 'Finish a focus session to welcome your first bunny. Bunnies stay for 24 hours.';
+  $('clear-burrow').hidden = visible === 0;
+  $('bunny-collection').replaceChildren();
+  if (!visible) {
+    const flower = document.createElement('span');
+    flower.className = 'empty-flower';
+    flower.setAttribute('aria-hidden', 'true');
+    flower.textContent = '✿';
+    $('bunny-collection').append(flower);
+    return;
+  }
+  s.earned.forEach(entry => {
+    const image = document.createElement('img');
+    image.src = 'bunny.png';
+    image.alt = companions[entry.bunny].name + ' — completed focus session';
+    image.style.filter = companions[entry.bunny].filter;
+    $('bunny-collection').append(image);
+  });
+}
+
+function renderInsights() {
+  const s = timer.state;
+  const signature = [s.history.length, s.dailyGoal, s.earnedTotal, s.history.at(-1)?.at || 0].join(':');
+  if (signature === lastInsights) return;
+  lastInsights = signature;
+  const stats = timer.stats();
+  const goalPercent = Math.min(100, Math.round(stats.todaySessions / s.dailyGoal * 100));
+  $('goal-copy').textContent = `${stats.todaySessions} of ${s.dailyGoal} sessions today`;
+  $('goal-fill').style.width = goalPercent + '%';
+  $('goal-progress').setAttribute('aria-valuenow', String(goalPercent));
+  $('stat-today').textContent = stats.todayMinutes + ' min';
+  $('stat-week').textContent = stats.weekMinutes + ' min';
+  $('stat-streak').textContent = stats.streak + (stats.streak === 1 ? ' day' : ' days');
+  $('stat-sessions').textContent = String(s.history.length);
+  $('stat-bunny').textContent = stats.favouriteBunny === null ? 'Not yet' : companions[stats.favouriteBunny].name;
+  $('stat-sound').textContent = stats.favouriteSound ? soundNames[stats.favouriteSound] : 'Not yet';
+
+  $('week-chart').replaceChildren();
+  const maxMinutes = Math.max(1, ...stats.weekKeys.map(key => stats.byDay[key].minutes));
+  stats.weekKeys.forEach(key => {
+    const day = stats.byDay[key];
+    const item = document.createElement('div');
+    item.className = 'chart-day';
+    const date = new Date(key + 'T12:00:00');
+    item.innerHTML = `<span class="chart-value">${day.minutes}</span><span class="chart-bar" style="--bar:${Math.max(day.minutes ? 8 : 2, day.minutes / maxMinutes * 100)}%"></span><span>${date.toLocaleDateString([], { weekday: 'short' }).slice(0, 2)}</span>`;
+    item.title = `${day.minutes} focus minutes across ${day.sessions} sessions`;
+    $('week-chart').append(item);
+  });
+
+  $('history-list').replaceChildren();
+  const recent = [...s.history].reverse().slice(0, 8);
+  if (!recent.length) {
+    $('history-list').innerHTML = '<li class="empty-row">Completed focus sessions will appear here.</li>';
+  } else {
+    recent.forEach(entry => {
+      const item = document.createElement('li');
+      const when = new Date(entry.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+      item.innerHTML = `<div><strong>${escapeHtml(entry.task || 'Untitled focus')}</strong><span>${when}</span></div><span>${entry.minutes} min · ${companions[entry.bunny].name}</span>`;
+      $('history-list').append(item);
     });
   }
+
+  $('collection-book').replaceChildren();
+  companions.forEach((companion, index) => {
+    const count = stats.bunnyCounts[index];
+    const card = document.createElement('article');
+    card.className = 'companion-card' + (count ? ' discovered' : '');
+    card.innerHTML = `<img src="bunny.png" alt="" style="filter:${companion.filter}"><div><strong>${companion.name}</strong><span>${count ? count + (count === 1 ? ' session' : ' sessions') : 'Not discovered yet'}</span></div>`;
+    $('collection-book').append(card);
+  });
+
+  const unlocked = timer.achievements();
+  $('achievement-list').replaceChildren();
+  achievementInfo.forEach(([id, name, description]) => {
+    const item = document.createElement('article');
+    item.className = 'achievement' + (unlocked[id] ? ' unlocked' : '');
+    item.innerHTML = `<span aria-hidden="true">${unlocked[id] ? '✿' : '○'}</span><div><strong>${name}</strong><p>${description}</p></div>`;
+    $('achievement-list').append(item);
+  });
 }
+
+function escapeHtml(value) {
+  const node = document.createElement('span');
+  node.textContent = value;
+  return node.innerHTML;
+}
+
 function hydrateControls() {
   const s = timer.state;
-  $('focus-min').value = s.focusMinutes; $('break-min').value = s.breakMinutes;
-  $('ambience').value = s.ambience; $('bell-sound').value = s.bell;
-  $('volume').value = Math.round(s.volume * 100); $('bell-volume').value = Math.round(s.bellVolume * 100);
+  $('focus-min').value = s.focusMinutes;
+  $('break-min').value = s.breakMinutes;
+  $('long-break-min').value = s.longBreakMinutes;
+  $('cycle-length').value = s.cycleLength;
+  $('ambience').value = s.ambience;
+  $('break-ambience').value = s.breakAmbience;
+  $('bell-sound').value = s.bell;
+  $('volume').value = Math.round(s.volume * 100);
+  $('bell-volume').value = Math.round(s.bellVolume * 100);
   $('bell').checked = s.bellEnabled;
-  bellPlayer.src = 'audio/' + s.bell + '.wav'; bellPlayer.volume = s.bellVolume;
+  $('task').value = s.task;
+  bellPlayer.src = 'audio/' + s.bell + '.wav';
+  bellPlayer.volume = s.bellVolume;
+  hydratePresets();
 }
+
+function hydratePresets() {
+  const selected = $('preset').value;
+  $('preset').replaceChildren();
+  for (const [id, preset] of Object.entries(BURROW_PRESETS)) {
+    const option = document.createElement('option');
+    option.value = 'builtin:' + id;
+    option.textContent = `${preset.name} · ${preset.focus}/${preset.break}`;
+    $('preset').append(option);
+  }
+  timer.state.customPresets.forEach((preset, index) => {
+    const option = document.createElement('option');
+    option.value = 'custom:' + index;
+    option.textContent = `${preset.name} · ${preset.focus}/${preset.break}`;
+    $('preset').append(option);
+  });
+  if ([...$('preset').options].some(option => option.value === selected)) $('preset').value = selected;
+}
+
 function mediaMetadata() {
   if (!('mediaSession' in navigator)) return;
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Bunny Burrow · ' + soundNames[timer.state.ambience], artist: 'Your focus session', artwork: [{ src: new URL('icons/icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' }] });
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'Bunny Burrow · ' + soundNames[currentSound()],
+      artist: timer.state.mode === 'focus' ? (timer.state.task || 'Your focus session') : 'Your gentle break',
+      artwork: [{ src: new URL('icons/icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' }]
+    });
     navigator.mediaSession.playbackState = ambient.paused ? 'paused' : 'playing';
   } catch {}
 }
+
 function stopPreview() {
   clearTimeout(previewTimeout);
   preview.pause();
@@ -151,124 +338,382 @@ async function playPreview(file, volume, label, button, stopAfter = 10000) {
     $('audio-status').textContent = label + ' could not play. Reconnect once, wait for Ready offline, then try again.';
   }
 }
-function syncAmbient(play = false) {
+
+function rampVolume(audio, target, duration, done) {
+  clearInterval(ambientFadeTimer);
+  if (!timer.state.fadeAudio || duration <= 0) {
+    audio.volume = target;
+    done?.();
+    return;
+  }
+  const from = audio.volume;
+  const started = performance.now();
+  ambientFadeTimer = setInterval(() => {
+    const progress = Math.min(1, (performance.now() - started) / duration);
+    audio.volume = from + (target - from) * progress;
+    if (progress >= 1) {
+      clearInterval(ambientFadeTimer);
+      done?.();
+    }
+  }, 40);
+}
+
+function syncAmbient(play = false, forceSwitch = false) {
   const s = timer.state;
-  if (!s.running || s.mode !== 'focus' || s.ambience === 'none') {
-    ambient.pause(); mediaMetadata(); return;
+  const sound = currentSound();
+  const targetVolume = s.volume;
+  if (!s.running || sound === 'none') {
+    rampVolume(ambient, 0, 300, () => { ambient.pause(); ambient.volume = targetVolume; mediaMetadata(); });
+    return;
   }
-  const url = new URL('audio/' + s.ambience + '.wav', location.href).href;
-  if (ambient.src !== url) { ambient.src = url; ambient.load(); }
-  ambient.volume = s.volume;
-  if (play) {
-    ambient.play().then(() => {
-      $('audio-status').textContent = soundNames[s.ambience] + ' is playing. Background playback depends on this browser.';
-      $('resume-audio').hidden = true; mediaMetadata();
-    }).catch(() => {
-      $('audio-status').textContent = 'Sound was paused or blocked. Tap Resume sound. If you’re offline, make sure offline setup finished.';
-      $('resume-audio').hidden = false;
-      document.querySelector('.background-help').open = true;
-    });
-  }
+  const url = new URL('audio/' + sound + '.wav', location.href).href;
+  const switchTrack = forceSwitch || ambient.src !== url;
+  const begin = () => {
+    if (switchTrack) {
+      ambient.src = url;
+      ambient.load();
+    }
+    ambient.volume = s.fadeAudio ? 0 : targetVolume;
+    if (play) {
+      ambient.play().then(() => {
+        rampVolume(ambient, targetVolume, 700);
+        $('audio-status').textContent = soundNames[sound] + ' is playing.';
+        $('resume-audio').hidden = true;
+        mediaMetadata();
+      }).catch(() => {
+        ambient.volume = targetVolume;
+        $('audio-status').textContent = 'Sound was paused or blocked. Tap Resume sound to continue.';
+        $('resume-audio').hidden = false;
+        $('background-help').open = true;
+      });
+    }
+  };
+  if (switchTrack && !ambient.paused && s.fadeAudio) rampVolume(ambient, 0, 350, begin);
+  else begin();
   mediaMetadata();
 }
+
 function ring() {
   const s = timer.state;
   if (!s.bellEnabled || !s.bellVolume) return;
-  bellPlayer.currentTime = 0; bellPlayer.volume = s.bellVolume;
-  bellPlayer.play().catch(() => { $('audio-status').textContent = 'The session ended, but the browser blocked the bell. Your timer is up to date.'; });
+  bellPlayer.currentTime = 0;
+  bellPlayer.volume = s.bellVolume;
+  bellPlayer.play().catch(() => {
+    $('audio-status').textContent = 'The timer finished, but the browser blocked the bell.';
+  });
 }
+
+function sendNotification(event) {
+  const s = timer.state;
+  if (!s.notificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const focusComplete = event.type === 'focus-complete';
+  const title = focusComplete ? (event.longBreak ? 'Long break unlocked' : 'Focus session complete') : 'Break complete';
+  const body = focusComplete
+    ? `${companions[s.chosen].name} is fully grown. Time for a ${event.longBreak ? s.longBreakMinutes : s.breakMinutes}-minute break.`
+    : 'Your next bunny is ready when you are.';
+  try { new Notification(title, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'bunny-burrow-timer' }); } catch {}
+}
+
 function tick(silent = false) {
   const bunniesBefore = timer.state.earned.length;
   const events = timer.advance();
   if (events.length || timer.state.earned.length !== bunniesBefore) {
-    save(); syncAmbient();
+    save();
+    syncAmbient(true, events.length > 0);
   }
   if (events.length) {
-    const last = events[events.length - 1];
-    $('announcement').textContent = last.type === 'focus-complete'
-      ? `Lovely work! ${companions[timer.state.chosen].name} is fully grown. Your break has started.`
-      : 'Break finished. Choose a bunny and start when you’re ready.';
+    const last = events.at(-1);
+    announce(last.type === 'focus-complete'
+      ? `Lovely work! ${companions[timer.state.chosen].name} is fully grown. Your ${last.longBreak ? 'long ' : ''}break has started.`
+      : 'Break finished. Choose a bunny and start when you’re ready.');
     if (silent && events.some(event => event.type === 'focus-complete')) {
-      $('announcement').textContent = timer.state.running
+      announce(timer.state.running
         ? 'Welcome back! Your bunny finished growing while you were away. Your break is in progress.'
-        : 'Welcome back! Your focus session and break finished while you were away. Your bunny is saved.';
+        : 'Welcome back! Your focus session and break finished while you were away. Your bunny is saved.');
     }
-    // Do not replay old alarms after returning from closure/suspension.
-    if (!silent && events.length === 1 && Date.now() - last.at < 2500) ring();
+    if (!silent && events.length === 1 && Date.now() - last.at < 2500) {
+      ring();
+      sendNotification(last);
+    }
     if (!timer.state.running) releaseAwake();
+    lastInsights = '';
   }
   render();
 }
+
 async function keepAwake() {
   if (!('wakeLock' in navigator) || !timer.state.running || wakeLock || wakeLockPending || document.visibilityState !== 'visible') return;
   wakeLockPending = true;
   try {
     const lock = await navigator.wakeLock.request('screen');
-    if (!timer.state.running || document.visibilityState !== 'visible') { await lock.release(); return; }
+    if (!timer.state.running || document.visibilityState !== 'visible') {
+      await lock.release();
+      return;
+    }
     wakeLock = lock;
     lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
-  } catch {} finally { wakeLockPending = false; }
+  } catch {} finally {
+    wakeLockPending = false;
+  }
 }
-function releaseAwake() { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } }
+
+function releaseAwake() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
 function start() {
-  if (timer.state.running) { tick(true); syncAmbient(true); return; }
-  // Unlock the bell element during a user gesture; later playback is still
-  // subject to the browser/OS suspending the app.
+  if (timer.state.running) {
+    tick(true);
+    syncAmbient(true);
+    return;
+  }
   if (timer.state.bellEnabled) {
     bellPlayer.muted = true;
     bellPlayer.play().then(() => {
-      bellPlayer.pause(); bellPlayer.currentTime = 0; bellPlayer.muted = false;
+      bellPlayer.pause();
+      bellPlayer.currentTime = 0;
+      bellPlayer.muted = false;
     }).catch(() => { bellPlayer.muted = false; });
   }
-  stopPreview(); tick(true);
+  stopPreview();
+  tick(true);
   if (!timer.state.running) timer.start();
-  $('announcement').textContent = ''; save(); syncAmbient(true); keepAwake(); render();
-}
-function pause() { tick(); timer.pause(); save(); syncAmbient(); releaseAwake(); render(); }
-function stopSession() {
-  stopPreview(); timer.stop(); save(); syncAmbient(); bellPlayer.pause(); releaseAwake();
-  $('announcement').textContent = 'Session stopped. Your progress is reset, and you can begin again whenever you’re ready.';
+  announce('');
+  save();
+  syncAmbient(true, true);
+  keepAwake();
   render();
 }
+
+function pause() {
+  tick();
+  timer.pause();
+  save();
+  syncAmbient();
+  releaseAwake();
+  render();
+}
+
+function stopSession() {
+  stopPreview();
+  timer.stop();
+  save();
+  syncAmbient();
+  bellPlayer.pause();
+  releaseAwake();
+  announce('Session stopped. Your unfinished progress was reset.');
+  render();
+}
+
+function changeDurations() {
+  if (timer.state.started) return;
+  const s = timer.state;
+  s.focusMinutes = Math.min(120, Math.max(1, Math.round(Number($('focus-min').value) || 25)));
+  s.breakMinutes = Math.min(60, Math.max(1, Math.round(Number($('break-min').value) || 5)));
+  s.longBreakMinutes = Math.min(60, Math.max(1, Math.round(Number($('long-break-min').value) || 15)));
+  s.cycleLength = Math.min(8, Math.max(2, Math.round(Number($('cycle-length').value) || 4)));
+  s.cycleProgress = Math.min(s.cycleProgress, s.cycleLength - 1);
+  timer.stop();
+  hydrateControls();
+  save();
+  render();
+}
+
+function selectedPreset() {
+  const [type, value] = $('preset').value.split(':');
+  return type === 'builtin' ? BURROW_PRESETS[value] : timer.state.customPresets[Number(value)];
+}
+
+async function requestNotifications() {
+  if (!('Notification' in window)) {
+    $('notification-status').textContent = 'Notifications are not supported by this browser.';
+    $('notifications').checked = false;
+    return;
+  }
+  if (!$('notifications').checked) {
+    timer.state.notificationsEnabled = false;
+    save();
+    $('notification-status').textContent = 'Timer notifications are off.';
+    return;
+  }
+  const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+  timer.state.notificationsEnabled = permission === 'granted';
+  $('notifications').checked = timer.state.notificationsEnabled;
+  $('notification-status').textContent = permission === 'granted'
+    ? 'Notifications are ready while the browser allows this app to run.'
+    : 'Notification permission was not granted.';
+  save();
+}
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(timer.buildBackup(), null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `bunny-burrow-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  $('data-status').textContent = 'Your Bunny Burrow backup was downloaded.';
+}
+
+async function importBackup(file) {
+  if (!file) return;
+  try {
+    const backup = JSON.parse(await file.text());
+    const restored = BurrowTimer.fromBackup(backup);
+    if (!confirm('Replace the timer, history and preferences on this device with this backup?')) return;
+    timer = restored;
+    stopPreview();
+    ambient.pause();
+    lastCollection = '';
+    lastInsights = '';
+    hydrateControls();
+    save();
+    syncAmbient();
+    render();
+    $('data-status').textContent = 'Backup restored successfully.';
+  } catch (error) {
+    $('data-status').textContent = error.message || 'This backup could not be restored.';
+  } finally {
+    $('import-backup').value = '';
+  }
+}
+
+$('theme').onclick = () => setTheme(!document.body.classList.contains('dark'));
+$('focus-mode').onclick = () => setFocusMode(true, true);
+$('exit-focus-mode').onclick = () => setFocusMode(false);
 $('start').onclick = () => timer.state.running ? pause() : start();
 $('stop').onclick = stopSession;
 $('reset').onclick = () => {
-  stopPreview(); timer.reset(); save(); syncAmbient(); bellPlayer.pause();
-  releaseAwake(); $('announcement').textContent = 'Timer reset. Begin again whenever you’re ready.'; render();
+  stopPreview();
+  timer.reset();
+  save();
+  syncAmbient();
+  bellPlayer.pause();
+  releaseAwake();
+  announce('Timer reset. Begin again whenever you’re ready.');
+  render();
 };
 $('resume-audio').onclick = () => { tick(true); syncAmbient(true); };
-function changeDurations() {
-  if (timer.state.started) return;
-  timer.state.focusMinutes = Math.min(120, Math.max(1, Math.round(Number($('focus-min').value) || 25)));
-  timer.state.breakMinutes = Math.min(60, Math.max(1, Math.round(Number($('break-min').value) || 5)));
-  timer.reset(); hydrateControls(); save(); render();
-}
-$('focus-min').onchange = changeDurations; $('break-min').onchange = changeDurations;
+$('focus-min').onchange = changeDurations;
+$('break-min').onchange = changeDurations;
+$('long-break-min').onchange = changeDurations;
+$('cycle-length').onchange = changeDurations;
+$('task').oninput = () => { timer.state.task = $('task').value.slice(0, 100); save(); render(); };
+$('goal').oninput = () => {
+  timer.state.dailyGoal = Math.min(20, Math.max(1, Math.round(Number($('goal').value) || 4)));
+  lastInsights = '';
+  save();
+  render();
+};
+
 document.querySelectorAll('.swatch').forEach(button => button.onclick = () => {
-  timer.state.chosen = Number(button.dataset.bunny); save(); render();
+  timer.state.chosen = Number(button.dataset.bunny);
+  save();
+  render();
 });
-$('ambience').onchange = () => { stopPreview(); timer.state.ambience = $('ambience').value; save(); syncAmbient(true); render(); };
-$('volume').oninput = () => { timer.state.volume = Number($('volume').value) / 100; ambient.volume = timer.state.volume; save(); };
-$('bell-volume').oninput = () => { timer.state.bellVolume = Number($('bell-volume').value) / 100; bellPlayer.volume = timer.state.bellVolume; save(); };
-$('bell-sound').onchange = () => { timer.state.bell = $('bell-sound').value; bellPlayer.src = 'audio/' + timer.state.bell + '.wav'; save(); };
-$('bell').onchange = () => { timer.state.bellEnabled = $('bell').checked; save(); };
+
+$('apply-preset').onclick = () => {
+  if (timer.applyPreset(selectedPreset())) {
+    hydrateControls();
+    save();
+    announce('Focus preset applied.');
+    render();
+  }
+};
+$('save-preset').onclick = () => {
+  $('preset-name').value = '';
+  $('preset-dialog').showModal();
+  $('preset-name').focus();
+};
+$('close-preset').onclick = () => $('preset-dialog').close();
+$('cancel-preset').onclick = () => $('preset-dialog').close();
+$('confirm-preset').onclick = () => {
+  const preset = timer.saveCustomPreset($('preset-name').value);
+  if (!preset) {
+    $('preset-feedback').textContent = 'Give this preset a short name first.';
+    return;
+  }
+  hydratePresets();
+  $('preset').value = 'custom:' + (timer.state.customPresets.length - 1);
+  save();
+  $('preset-dialog').close();
+  announce(`${preset.name} was saved on this device.`);
+};
+
+$('ambience').onchange = () => {
+  stopPreview();
+  timer.state.ambience = $('ambience').value;
+  timer.state.activeAmbience = timer.state.ambience;
+  save();
+  syncAmbient(true, true);
+  render();
+};
+$('break-ambience').onchange = () => {
+  timer.state.breakAmbience = $('break-ambience').value;
+  save();
+  if (timer.state.mode === 'break') syncAmbient(true, true);
+};
+$('favorite-sound').onclick = () => {
+  const added = timer.toggleFavourite(timer.state.ambience);
+  save();
+  announce(added ? `${soundNames[timer.state.ambience]} added to favourites.` : `${soundNames[timer.state.ambience]} removed from favourites.`);
+  render();
+};
+$('shuffle-favourites').onchange = () => {
+  timer.state.shuffleFavourites = $('shuffle-favourites').checked;
+  save();
+  render();
+};
+$('fade-audio').onchange = () => {
+  timer.state.fadeAudio = $('fade-audio').checked;
+  save();
+};
+$('volume').oninput = () => {
+  timer.state.volume = Number($('volume').value) / 100;
+  ambient.volume = timer.state.volume;
+  save();
+};
+$('bell-volume').oninput = () => {
+  timer.state.bellVolume = Number($('bell-volume').value) / 100;
+  bellPlayer.volume = timer.state.bellVolume;
+  save();
+};
+$('bell-sound').onchange = () => {
+  timer.state.bell = $('bell-sound').value;
+  bellPlayer.src = 'audio/' + timer.state.bell + '.wav';
+  save();
+};
+$('bell').onchange = () => {
+  timer.state.bellEnabled = $('bell').checked;
+  save();
+};
+$('notifications').onchange = requestNotifications;
 $('preview-ambience').onclick = event => {
   if (!preview.paused) { stopPreview(); return; }
-  const sound = timer.state.ambience;
-  playPreview(sound, timer.state.volume, soundNames[sound], event.currentTarget);
+  playPreview(timer.state.ambience, timer.state.volume, soundNames[timer.state.ambience], event.currentTarget);
 };
 $('preview-bell').onclick = event => {
   const label = $('bell-sound').selectedOptions[0]?.textContent || 'Ending bell';
   playPreview(timer.state.bell, timer.state.bellVolume, label, event.currentTarget, 6000);
 };
+
 $('clear-burrow').onclick = () => $('clear-dialog').showModal();
 $('close-clear').onclick = () => $('clear-dialog').close();
 $('cancel-clear').onclick = () => $('clear-dialog').close();
 $('confirm-clear').onclick = () => {
-  timer.clearBurrow(); save(); $('clear-dialog').close();
-  $('announcement').textContent = 'Your burrow is clear. A fresh little start awaits.';
+  timer.clearBurrow();
+  lastCollection = '';
+  save();
+  $('clear-dialog').close();
+  announce('Your burrow is clear. Your long-term focus history is still safe.');
   render();
 };
+$('export-backup').onclick = exportBackup;
+$('import-backup').onchange = event => importBackup(event.target.files[0]);
+
 preview.addEventListener('ended', stopPreview);
 if ('mediaSession' in navigator) {
   for (const [action, handler] of Object.entries({ play: start, pause, stop: stopSession })) {
@@ -279,22 +724,54 @@ ambient.addEventListener('timeupdate', () => tick());
 ambient.addEventListener('pause', () => { mediaMetadata(); render(); });
 ambient.addEventListener('playing', () => { mediaMetadata(); render(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') { tick(true); syncAmbient(true); if (timer.state.running) keepAwake(); }
-  else { stopPreview(); save(); releaseAwake(); }
+  if (document.visibilityState === 'visible') {
+    tick(true);
+    syncAmbient(true);
+    if (timer.state.running) keepAwake();
+  } else {
+    stopPreview();
+    save();
+    releaseAwake();
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && document.body.classList.contains('focus-mode')) setFocusMode(false);
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.body.classList.contains('focus-mode')) setFocusMode(false);
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    event.preventDefault();
+    timer.state.running ? pause() : start();
+  }
 });
 window.addEventListener('pagehide', save);
 window.addEventListener('pageshow', () => { tick(true); syncAmbient(true); });
 window.addEventListener('storage', event => {
   if (event.key !== storageKey || !event.newValue) return;
   try {
-    timer = new BurrowTimer(JSON.parse(event.newValue)); hydrateControls();
-    ambient.pause(); tick(true); render();
-    $('audio-status').textContent = 'Your session was updated in another window. Use one window for sound playback.';
+    timer = new BurrowTimer(JSON.parse(event.newValue));
+    lastCollection = '';
+    lastInsights = '';
+    hydrateControls();
+    ambient.pause();
+    tick(true);
+    announce('Your session was updated in another window. Use one window for sound playback.');
   } catch {}
 });
-hydrateControls(); tick(true); render();
-if (timer.state.running && timer.state.mode === 'focus' && timer.state.ambience !== 'none') {
-  if (!$('announcement').textContent) $('announcement').textContent = 'Your saved session is up to date. Tap Resume sound to continue listening.';
-  document.querySelector('.background-help').open = true;
+
+hydrateControls();
+tick(true);
+render();
+if (timer.state.running && currentSound() !== 'none') {
+  if (!$('announcement').textContent) announce('Your saved session is up to date. Tap Resume sound to continue listening.');
+  $('background-help').open = true;
+}
+if ('Notification' in window) {
+  $('notification-status').textContent = Notification.permission === 'granted'
+    ? 'Notifications are available.'
+    : 'Turn this on to request notification permission.';
+} else {
+  $('notification-status').textContent = 'Notifications are not supported by this browser.';
+  $('notifications').disabled = true;
 }
 setInterval(tick, 250);
