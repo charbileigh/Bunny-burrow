@@ -49,3 +49,16 @@ included as `scripts/generate-additional-lofi.py`.
 These tracks intentionally use different meters, tempos, instrumentation and
 rhythmic patterns. They were synthesized without third-party samples or copied
 melodies. Source: `scripts/generate-distinct-lofi.py`.
+
+## Live-controls audio additions
+
+- `lofi_neon_bloom.wav` — 112 BPM synthwave pulse with four-on-the-floor drums.
+- `lofi_vinyl_keys.wav` — sparse 74 BPM electric-piano seventh chords and vinyl texture.
+- `lofi_sleepy_strings.wav` — drumless 66 BPM acoustic-style plucked strings.
+- `lofi_music_box.wav` — bright 92 BPM music-box melody in 6/8.
+- `bell_temple.wav` — a low, five-second temple-style gong.
+- `bell_twinkle.wav` — a short cascade of four high chimes.
+
+These additions were composed and synthesized with the deterministic
+`scripts/generate-new-audio.py` generator. They contain no downloaded or
+third-party recordings, samples, or copied melodies.

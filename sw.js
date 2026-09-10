@@ -2,7 +2,7 @@
 
 // Change VERSION whenever you release new app files. Cache names include the
 // deployment scope, so another app on the same host keeps its own caches.
-const VERSION = 'mobile-9-distinct-lofi';
+const VERSION = 'mobile-10-live-controls';
 const PREFIX = 'bunny-burrow:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const ASSETS = [
@@ -12,7 +12,8 @@ const ASSETS = [
   './timer.js', './audio/fire.wav', './audio/beach.wav', './audio/ocean.wav', './audio/rain.wav', './audio/forest.wav', './audio/stream.wav', './audio/forest_trees.wav', './audio/lofi_petal.wav', './audio/lofi_moon.wav', './audio/lofi_cocoa.wav',
   './audio/lofi_rainy_window.wav', './audio/lofi_lavender_evening.wav', './audio/lofi_sunday_sketchbook.wav',
   './audio/lofi_jazz_cafe.wav', './audio/lofi_cloud_waltz.wav', './audio/lofi_pixel_night.wav',
-  './audio/bell_glass.wav', './audio/bell_chime.wav', './audio/bell_bowl.wav'
+  './audio/lofi_neon_bloom.wav', './audio/lofi_vinyl_keys.wav', './audio/lofi_sleepy_strings.wav', './audio/lofi_music_box.wav',
+  './audio/bell_glass.wav', './audio/bell_chime.wav', './audio/bell_bowl.wav', './audio/bell_temple.wav', './audio/bell_twinkle.wav'
 ];
 const assetURLs = new Set(ASSETS.map(path => new URL(path, self.registration.scope).href));
 

@@ -6,10 +6,14 @@ your phone's browser. No native wrapper, server, build step or API key is needed
 
 ## What changed
 
-- Focus sound picker with seven ambient choices, nine lo-fi tracks or quiet focus.
-- Bell picker: glass bell, soft chime or singing bowl.
+- Focus sound picker with seven ambient choices, thirteen deliberately varied lo-fi tracks or quiet focus.
+- Five ending bells, including a deep temple gong and a bright twinkle sequence.
+- Pause, continue or fully stop a session without earning an unfinished bunny.
+- Change the bunny, focus sound or ending bell while a session is live.
+- Thirteen companion colours and a gentle hop animation while the bunny grows.
+- A clear-burrow control and automatic rolling removal 24 hours after each bunny is earned.
 - Preview buttons, separate sound and bell volume, and an ending-bell switch.
-- All nineteen WAV audio files are bundled and cached for offline playback.
+- All twenty-five WAV audio files are bundled and cached for offline playback.
 - HTML audio playback and Media Session controls for supported lock screens.
 - Saved timer deadlines, bunny progress, sound choices and volume on this device.
 - Correct timer catch-up after switching apps or reopening; no duplicate bunnies.
@@ -44,13 +48,13 @@ this deliverable stays a PWA as requested.
 1. Extract `Bunny-Burrow-Mobile-App.zip`.
 2. Upload the extracted app files to the same folder as your existing PWA,
    replacing the old files and preserving the `audio` and `icons` folders.
-3. Upload ALL files, including `sw.js`, `timer.js`, `mobile.js` and all nineteen WAVs.
+3. Upload ALL files, including `sw.js`, `timer.js`, `mobile.js` and all twenty-five WAVs.
 4. Visit the hosted app online to let the browser download the update.
 5. Close all Bunny Burrow tabs and app windows, then reopen the hosted app.
    If the old version remains, repeat after the update has downloaded.
 6. Wait for **Ready offline** before going offline.
 
-The new service worker uses cache version `mobile-9-distinct-lofi`. An update waits
+The new service worker uses cache version `mobile-10-live-controls`. An update waits
 until old app windows close so it does not replace files during a focus session.
 Normal updates do not clear saved progress. Do not clear site data unless you
 intend to reset the app's saved timer, settings and bunnies as well.
@@ -100,10 +104,11 @@ policies can affect what you hear.
 ## Saved state
 
 The timer, preferences and bunny history are stored locally for this host/path.
-They are not sent to a server or synced between devices. The latest 100 bunny
-images are displayed while the total count remains saved. Clearing website data
-or removing storage can erase this state. The app warns if device storage is
-unavailable. Use one open window for playback to avoid competing audio.
+They are not sent to a server or synced between devices. Each earned bunny is
+time-stamped and remains visible for 24 hours. The Clear burrow button removes
+them immediately without changing timer or sound settings. Clearing website data
+can also erase this state. The app warns if device storage is unavailable. Use
+one open window for playback to avoid competing audio.
 
 ## Files
 
@@ -113,7 +118,7 @@ unavailable. Use one open window for playback to avoid competing audio.
 - `mobile.js` — installation guidance and offline/update status.
 - `sw.js` — versioned app/audio caching and offline byte-range responses.
 - `manifest.webmanifest`, `icons/`, `bunny.png` — PWA identity and artwork.
-- `audio/` — all sixteen focus loops and three bell files.
+- `audio/` — all twenty focus loops and five bell files.
 - `README.md` — hosting, upgrade and behaviour instructions.
 
 ## Local preview and future changes

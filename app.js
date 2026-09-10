@@ -9,7 +9,12 @@ const companions = [
   { name: 'Cocoa', color: 'soft taupe', filter: 'grayscale(1) sepia(.3) saturate(.65) brightness(.78)' },
   { name: 'Mist', color: 'silver grey', filter: 'grayscale(1) brightness(.88)' },
   { name: 'Lilac', color: 'pale lilac', filter: 'hue-rotate(270deg) saturate(.3) brightness(1.03)' },
-  { name: 'Peach', color: 'soft peach', filter: 'sepia(.22) saturate(.65) brightness(1.02)' }
+  { name: 'Peach', color: 'soft peach', filter: 'sepia(.22) saturate(.65) brightness(1.02)' },
+  { name: 'Bluebell', color: 'dusty blue', filter: 'hue-rotate(145deg) saturate(.48) brightness(.96)' },
+  { name: 'Rosebud', color: 'deep rose', filter: 'hue-rotate(330deg) saturate(1.15) brightness(.88)' },
+  { name: 'Midnight', color: 'deep violet', filter: 'hue-rotate(250deg) saturate(.72) brightness(.63)' },
+  { name: 'Caramel', color: 'warm caramel', filter: 'grayscale(.18) sepia(.62) saturate(1.05) brightness(.82)' },
+  { name: 'Cloud', color: 'cool blue-white', filter: 'grayscale(.75) sepia(.08) hue-rotate(150deg) saturate(.38) brightness(1.08)' }
 ];
 const soundNames = {
   fire: 'Crackling fire',
@@ -28,6 +33,10 @@ const soundNames = {
   lofi_jazz_cafe: 'Lo-fi · Jazz-hop Café',
   lofi_cloud_waltz: 'Lo-fi · Cloud Waltz',
   lofi_pixel_night: 'Lo-fi · Pixel Night',
+  lofi_neon_bloom: 'Lo-fi · Neon Bloom',
+  lofi_vinyl_keys: 'Lo-fi · Vinyl Keys',
+  lofi_sleepy_strings: 'Lo-fi · Sleepy Strings',
+  lofi_music_box: 'Lo-fi · Petal Music Box',
   none: 'Quiet focus'
 };
 const storageKey = 'bunny-burrow-v3:' + location.pathname.replace(/index\.html$/, '');
@@ -38,7 +47,7 @@ const ambient = $('ambient-audio'), bellPlayer = $('bell-audio'), preview = $('p
 let wakeLock = null, wakeLockPending = false, previewTimeout, lastCollection = '';
 
 function save() {
-  try { localStorage.setItem(storageKey, JSON.stringify(timer.state)); }
+  try { localStorage.setItem(storageKey, JSON.stringify(timer.serialise())); }
   catch { $('announcement').textContent = 'Device storage is unavailable. Keep this page open to retain your session.'; }
 }
 function setTheme(dark) {
@@ -60,11 +69,11 @@ function render() {
   document.title = (s.started ? clock + ' · ' : '') + 'Bunny Burrow';
   $('mode').textContent = s.mode === 'focus' ? 'Focus time' : 'Break time';
   $('start').innerHTML = s.running ? 'Ⅱ &nbsp; Pause' : s.started ? '▶ &nbsp; Continue' : s.mode === 'focus' ? '▶ &nbsp; Start focusing' : '▶ &nbsp; Start break';
+  $('stop').hidden = !s.started;
   document.body.classList.toggle('running', s.running);
   $('focus-min').disabled = s.started;
   $('break-min').disabled = s.started;
   document.querySelectorAll('.swatch').forEach(b => {
-    b.disabled = s.started;
     const selected = Number(b.dataset.bunny) === s.chosen;
     b.classList.toggle('selected', selected);
     b.setAttribute('aria-pressed', String(selected));
@@ -81,15 +90,18 @@ function render() {
   $('heading').innerHTML = s.mode === 'break' ? 'A little rest.<br>You’ve earned it.' : 'Small steps.<br>Happy little hops.';
   $('subheading').textContent = s.mode === 'break' ? 'Your bunny is all grown up. Time for a breather.' : 'Settle in. Your bunny grows while you focus.';
   $('next').textContent = s.mode === 'focus' ? `${s.focusMinutes} min focus · then a ${s.breakMinutes} min breather` : 'Stretch, sip some water, and rest your eyes.';
-  $('preview-ambience').disabled = s.ambience === 'none' || (s.running && s.mode === 'focus');
+  $('preview-ambience').disabled = s.ambience === 'none';
   $('resume-audio').hidden = !(s.running && s.mode === 'focus' && s.ambience !== 'none' && ambient.paused);
-  const collectionKey = s.earnedTotal + ':' + s.earned.join(',');
+  const collectionKey = s.earnedTotal + ':' + s.earned.map(entry => entry.bunny + '@' + entry.at).join(',');
   if (collectionKey !== lastCollection) {
     lastCollection = collectionKey;
-    $('session-count').textContent = `${s.earnedTotal} ${s.earnedTotal === 1 ? 'bunny' : 'bunnies'} in your burrow`;
-    $('meadow-note').textContent = s.earnedTotal ? `${s.earnedTotal} little ${s.earnedTotal === 1 ? 'reason' : 'reasons'} to be proud of yourself. Saved on this device.` : 'Finish a focus session to welcome your first bunny.';
+    const visible = s.earned.length;
+    $('session-count').textContent = `${visible} ${visible === 1 ? 'bunny' : 'bunnies'} in your burrow`;
+    $('meadow-note').textContent = visible ? `${visible} little ${visible === 1 ? 'reason' : 'reasons'} to be proud of yourself. Bunnies stay here for 24 hours.` : 'Finish a focus session to welcome your first bunny. Bunnies stay for 24 hours.';
+    $('clear-burrow').hidden = visible === 0;
     $('bunny-collection').replaceChildren();
-    s.earned.forEach(index => {
+    s.earned.forEach(entry => {
+      const index = entry.bunny;
       const image = document.createElement('img'); image.src = 'bunny.png';
       image.alt = companions[index].name + ' — completed focus session';
       image.style.filter = companions[index].filter; $('bunny-collection').append(image);
@@ -166,9 +178,12 @@ function ring() {
   bellPlayer.play().catch(() => { $('audio-status').textContent = 'The session ended, but the browser blocked the bell. Your timer is up to date.'; });
 }
 function tick(silent = false) {
+  const bunniesBefore = timer.state.earned.length;
   const events = timer.advance();
-  if (events.length) {
+  if (events.length || timer.state.earned.length !== bunniesBefore) {
     save(); syncAmbient();
+  }
+  if (events.length) {
     const last = events[events.length - 1];
     $('announcement').textContent = last.type === 'focus-complete'
       ? `Lovely work! ${companions[timer.state.chosen].name} is fully grown. Your break has started.`
@@ -210,7 +225,13 @@ function start() {
   $('announcement').textContent = ''; save(); syncAmbient(true); keepAwake(); render();
 }
 function pause() { tick(); timer.pause(); save(); syncAmbient(); releaseAwake(); render(); }
+function stopSession() {
+  stopPreview(); timer.stop(); save(); syncAmbient(); bellPlayer.pause(); releaseAwake();
+  $('announcement').textContent = 'Session stopped. Your progress is reset, and you can begin again whenever you’re ready.';
+  render();
+}
 $('start').onclick = () => timer.state.running ? pause() : start();
+$('stop').onclick = stopSession;
 $('reset').onclick = () => {
   stopPreview(); timer.reset(); save(); syncAmbient(); bellPlayer.pause();
   releaseAwake(); $('announcement').textContent = 'Timer reset. Begin again whenever you’re ready.'; render();
@@ -224,7 +245,6 @@ function changeDurations() {
 }
 $('focus-min').onchange = changeDurations; $('break-min').onchange = changeDurations;
 document.querySelectorAll('.swatch').forEach(button => button.onclick = () => {
-  if (timer.state.started) return;
   timer.state.chosen = Number(button.dataset.bunny); save(); render();
 });
 $('ambience').onchange = () => { stopPreview(); timer.state.ambience = $('ambience').value; save(); syncAmbient(true); render(); };
@@ -241,9 +261,17 @@ $('preview-bell').onclick = event => {
   const label = $('bell-sound').selectedOptions[0]?.textContent || 'Ending bell';
   playPreview(timer.state.bell, timer.state.bellVolume, label, event.currentTarget, 6000);
 };
+$('clear-burrow').onclick = () => $('clear-dialog').showModal();
+$('close-clear').onclick = () => $('clear-dialog').close();
+$('cancel-clear').onclick = () => $('clear-dialog').close();
+$('confirm-clear').onclick = () => {
+  timer.clearBurrow(); save(); $('clear-dialog').close();
+  $('announcement').textContent = 'Your burrow is clear. A fresh little start awaits.';
+  render();
+};
 preview.addEventListener('ended', stopPreview);
 if ('mediaSession' in navigator) {
-  for (const [action, handler] of Object.entries({ play: start, pause, stop: pause })) {
+  for (const [action, handler] of Object.entries({ play: start, pause, stop: stopSession })) {
     try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
   }
 }
