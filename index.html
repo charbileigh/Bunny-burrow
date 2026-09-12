@@ -133,8 +133,26 @@
               <optgroup label="Mellow lo-fi">
                 <option value="lofi_petal">Petal study</option><option value="lofi_moon">Moonlit notes</option><option value="lofi_cocoa">Cocoa break</option><option value="lofi_rainy_window">Rainy Window</option><option value="lofi_lavender_evening">Lavender Evening</option><option value="lofi_sunday_sketchbook">Sunday Sketchbook</option>
               </optgroup>
+              <optgroup label="Jazz collection">
+                <option value="lofi_jazz_cafe">Jazz-hop Café · swung</option>
+                <option value="jazz_velvet_swing">Velvet Swing · brushed</option>
+                <option value="jazz_bossa_bloom">Bossa Bloom · sunny</option>
+                <option value="jazz_midnight_sax">Midnight Sax · modal</option>
+                <option value="jazz_brass_parade">Brass Parade · lively</option>
+                <option value="jazz_piano_ballad">Piano Afterglow · slow</option>
+              </optgroup>
+              <optgroup label="Synthwave">
+                <option value="lofi_neon_bloom">Neon Bloom · synthwave</option>
+                <option value="synthwave_arcade_drive">Arcade Drive · energetic</option>
+                <option value="synthwave_cosmic_drift">Cosmic Drift · spacious</option>
+              </optgroup>
+              <optgroup label="Chillwave">
+                <option value="chillwave_sunset_tape">Sunset Tape · hazy</option>
+                <option value="chillwave_aqua_dream">Aqua Dream · weightless</option>
+                <option value="chillwave_pastel_dusk">Pastel Dusk · chopped</option>
+              </optgroup>
               <optgroup label="Distinct lo-fi styles">
-                <option value="lofi_jazz_cafe">Jazz-hop Café · swung</option><option value="lofi_cloud_waltz">Cloud Waltz · 3/4</option><option value="lofi_pixel_night">Pixel Night · bright</option><option value="lofi_neon_bloom">Neon Bloom · synthwave</option><option value="lofi_vinyl_keys">Vinyl Keys · mellow piano</option><option value="lofi_sleepy_strings">Sleepy Strings · acoustic</option><option value="lofi_music_box">Petal Music Box · sparkling</option>
+                <option value="lofi_cloud_waltz">Cloud Waltz · 3/4</option><option value="lofi_pixel_night">Pixel Night · bright</option><option value="lofi_vinyl_keys">Vinyl Keys · mellow piano</option><option value="lofi_sleepy_strings">Sleepy Strings · acoustic</option><option value="lofi_music_box">Petal Music Box · sparkling</option>
               </optgroup>
               <option value="none">Quiet focus</option>
             </select>
@@ -144,11 +162,11 @@
           <label class="volume-row" for="volume">Sound volume <input id="volume" type="range" min="0" max="100" value="35"></label>
           <label class="audio-label" for="break-ambience">Break sound</label>
           <select id="break-ambience" class="wide-select">
-            <option value="none">Quiet break</option><option value="rain">Gentle rain</option><option value="forest">Forest breeze</option><option value="stream">Flowing stream</option><option value="ocean">Ocean waves</option><option value="lofi_cloud_waltz">Cloud Waltz</option><option value="lofi_sleepy_strings">Sleepy Strings</option>
+            <option value="none">Quiet break</option><option value="rain">Gentle rain</option><option value="forest">Forest breeze</option><option value="stream">Flowing stream</option><option value="ocean">Ocean waves</option><option value="lofi_cloud_waltz">Cloud Waltz</option><option value="lofi_sleepy_strings">Sleepy Strings</option><option value="chillwave_sunset_tape">Sunset Tape</option><option value="chillwave_aqua_dream">Aqua Dream</option><option value="chillwave_pastel_dusk">Pastel Dusk</option>
           </select>
           <label class="audio-label" for="bell-sound">Ending bell</label>
           <div class="audio-picker">
-            <select id="bell-sound"><option value="bell_glass">Glass bell</option><option value="bell_chime">Soft chime</option><option value="bell_bowl">Singing bowl</option><option value="bell_temple">Deep temple gong</option><option value="bell_twinkle">Twinkle bells</option></select>
+            <select id="bell-sound"><option value="bell_glass">Glass bell</option><option value="bell_chime">Soft chime</option><option value="bell_bowl">Singing bowl</option><option value="bell_temple">Deep temple gong</option><option value="bell_twinkle">Twinkle bells</option><option value="bell_harbour">Deep harbour bell</option><option value="bell_clock_duet">Bright clock duet</option></select>
             <button id="preview-bell" type="button" class="preview-button" aria-label="Preview selected bell">▶</button>
           </div>
           <label class="volume-row" for="bell-volume">Bell volume <input id="bell-volume" type="range" min="0" max="100" value="65"></label>
@@ -198,6 +216,7 @@
           <span class="eyebrow">GENTLE REMINDERS</span>
           <h2>Timer notifications</h2>
           <label class="sound-row"><span>Notify me when timers finish</span><input id="notifications" type="checkbox" role="switch"></label>
+          <label class="sound-row"><span>Show the live countdown</span><input id="countdown-notifications" type="checkbox" role="switch"></label>
           <p id="notification-status" class="setting-note" role="status"></p>
         </article>
         <article class="tool-card">
@@ -220,7 +239,8 @@
       <details id="background-help" class="background-help">
         <summary>How background focus works</summary>
         <p>Start your session before switching apps. Some browsers keep sound playing with the screen locked; others pause it. Lock-screen playback controls appear where supported.</p>
-        <p>If you fully close the app, audio, notifications and timed bells may stop. Your session is saved, and the timer catches up when you reopen it.</p>
+        <p>The live notification updates while your browser keeps the PWA active. If updates are suspended, its finish time remains accurate and the timer catches up when you reopen it.</p>
+        <p>If you fully close the app, audio, notification updates and timed bells may stop. Your session is saved, and the timer catches up when you reopen it.</p>
         <p id="audio-status" role="status">Tap a preview button to try each sound.</p>
         <button id="resume-audio" class="install-button" type="button" hidden>Resume sound</button>
       </details>

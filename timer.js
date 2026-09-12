@@ -10,9 +10,16 @@
     'lofi_rainy_window', 'lofi_lavender_evening', 'lofi_sunday_sketchbook',
     'lofi_jazz_cafe', 'lofi_cloud_waltz', 'lofi_pixel_night',
     'lofi_neon_bloom', 'lofi_vinyl_keys', 'lofi_sleepy_strings', 'lofi_music_box',
+    'jazz_velvet_swing', 'jazz_bossa_bloom', 'jazz_midnight_sax',
+    'jazz_brass_parade', 'jazz_piano_ballad',
+    'synthwave_arcade_drive', 'synthwave_cosmic_drift',
+    'chillwave_sunset_tape', 'chillwave_aqua_dream', 'chillwave_pastel_dusk',
     'none'
   ];
-  const BELLS = ['bell_glass', 'bell_chime', 'bell_bowl', 'bell_temple', 'bell_twinkle'];
+  const BELLS = [
+    'bell_glass', 'bell_chime', 'bell_bowl', 'bell_temple', 'bell_twinkle',
+    'bell_harbour', 'bell_clock_duet'
+  ];
   const BUILTIN_PRESETS = {
     study: { name: 'Study Sprint', focus: 25, break: 5, longBreak: 15, cycle: 4 },
     deep: { name: 'Deep Work', focus: 50, break: 10, longBreak: 25, cycle: 3 },
@@ -35,14 +42,14 @@
 
   function fresh() {
     return {
-      version: 5, mode: 'focus', running: false, started: false, isLongBreak: false,
+      version: 6, mode: 'focus', running: false, started: false, isLongBreak: false,
       remaining: 1500000, deadline: 0, focusMinutes: 25, breakMinutes: 5,
       longBreakMinutes: 15, cycleLength: 4, cycleProgress: 0,
       chosen: 0, earned: [], earnedTotal: 0, history: [], task: '',
       dailyGoal: 4, ambience: 'fire', activeAmbience: 'fire', breakAmbience: 'none',
       favourites: ['fire', 'lofi_petal'], shuffleFavourites: false, fadeAudio: true,
       bell: 'bell_glass', volume: .35, bellVolume: .65, bellEnabled: true,
-      notificationsEnabled: false, customPresets: []
+      notificationsEnabled: false, countdownNotificationsEnabled: false, customPresets: []
     };
   }
 
@@ -78,7 +85,7 @@
   class BurrowTimer {
     constructor(raw, now = Date.now()) {
       this.state = fresh();
-      if (!raw || ![3, 4, 5].includes(raw.version)) return;
+      if (!raw || ![3, 4, 5, 6].includes(raw.version)) return;
       const s = this.state;
       s.focusMinutes = integer(raw.focusMinutes, 25, 1, 120);
       s.breakMinutes = integer(raw.breakMinutes, 5, 1, 60);
@@ -90,7 +97,7 @@
       s.activeAmbience = validSound(raw.activeAmbience, s.ambience);
       s.breakAmbience = validSound(raw.breakAmbience, 'none');
       s.favourites = Array.isArray(raw.favourites)
-        ? [...new Set(raw.favourites.filter(sound => AMBIENCE.includes(sound) && sound !== 'none'))].slice(0, 12)
+        ? [...new Set(raw.favourites.filter(sound => AMBIENCE.includes(sound) && sound !== 'none'))].slice(0, 24)
         : ['fire', 'lofi_petal'];
       s.shuffleFavourites = raw.shuffleFavourites === true;
       s.fadeAudio = raw.fadeAudio !== false;
@@ -99,6 +106,7 @@
       s.bellVolume = volume(raw.bellVolume, .65);
       s.bellEnabled = raw.bellEnabled !== false;
       s.notificationsEnabled = raw.notificationsEnabled === true;
+      s.countdownNotificationsEnabled = raw.countdownNotificationsEnabled === true;
       s.task = cleanText(raw.task, 100);
       s.dailyGoal = integer(raw.dailyGoal, 4, 1, 20);
       s.customPresets = normalisePresets(raw.customPresets);
@@ -241,7 +249,7 @@
       if (!AMBIENCE.includes(sound) || sound === 'none') return false;
       const s = this.state;
       if (s.favourites.includes(sound)) s.favourites = s.favourites.filter(item => item !== sound);
-      else s.favourites = [...s.favourites, sound].slice(-12);
+      else s.favourites = [...s.favourites, sound].slice(-24);
       return s.favourites.includes(sound);
     }
 
@@ -303,7 +311,7 @@
     }
 
     serialise(now = Date.now()) {
-      this.state.version = 5;
+      this.state.version = 6;
       return { ...this.state, savedAt: now };
     }
 
@@ -315,13 +323,13 @@
       if (!backup || backup.app !== 'Bunny Burrow' || backup.backupVersion !== 1 || !backup.data) {
         throw new Error('This is not a Bunny Burrow backup.');
       }
-      if (![3, 4, 5].includes(backup.data.version)) throw new Error('This backup version is not supported.');
+      if (![3, 4, 5, 6].includes(backup.data.version)) throw new Error('This backup version is not supported.');
       return new BurrowTimer(backup.data, now);
     }
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey };
+    module.exports = { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey, AMBIENCE, BELLS };
   } else {
     root.BurrowTimer = BurrowTimer;
     root.BURROW_PRESETS = BUILTIN_PRESETS;

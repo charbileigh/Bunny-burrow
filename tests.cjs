@@ -1,7 +1,16 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey } = require('./timer.js');
+const { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey, AMBIENCE, BELLS } = require('./timer.js');
+
+const NEW_MUSIC = [
+  'jazz_velvet_swing', 'jazz_bossa_bloom', 'jazz_midnight_sax',
+  'jazz_brass_parade', 'jazz_piano_ballad',
+  'synthwave_arcade_drive', 'synthwave_cosmic_drift',
+  'chillwave_sunset_tape', 'chillwave_aqua_dream', 'chillwave_pastel_dusk'
+];
+const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
 
 (async () => {
   const timer = new BurrowTimer();
@@ -95,7 +104,7 @@ const { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey } = require('./timer.js'
   const backup = insights.buildBackup(now);
   const restored = BurrowTimer.fromBackup(JSON.parse(JSON.stringify(backup)), now);
   assert.equal(restored.state.history.length, 3);
-  assert.equal(restored.state.version, 5);
+  assert.equal(restored.state.version, 6);
   assert.throws(() => BurrowTimer.fromBackup({ app: 'Different app' }), /not a Bunny Burrow/);
 
   const legacy = new BurrowTimer({
@@ -103,10 +112,30 @@ const { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey } = require('./timer.js'
     ambience: 'fire', bell: 'bell_glass', volume: .35, bellVolume: .65,
     earned: [0, 7], earnedTotal: 2, mode: 'focus', remaining: 1500000
   }, 5000);
-  assert.equal(legacy.state.version, 5);
+  assert.equal(legacy.state.version, 6);
   assert.equal(legacy.state.earned.length, 2);
   assert.equal(legacy.state.earned[0].at, 5000);
   assert.equal(legacy.state.dailyGoal, 4);
+  assert.equal(legacy.state.countdownNotificationsEnabled, false);
+
+  const versionFive = new BurrowTimer({
+    version: 5, mode: 'focus', remaining: 1500000,
+    ambience: 'lofi_jazz_cafe', bell: 'bell_twinkle', notificationsEnabled: true
+  });
+  assert.equal(versionFive.state.version, 6);
+  assert.equal(versionFive.state.notificationsEnabled, true);
+  assert.equal(versionFive.state.countdownNotificationsEnabled, false);
+
+  const expandedAudio = new BurrowTimer({
+    version: 6, mode: 'focus', remaining: 1500000,
+    ambience: 'jazz_bossa_bloom', activeAmbience: 'jazz_bossa_bloom',
+    breakAmbience: 'chillwave_aqua_dream', bell: 'bell_harbour',
+    countdownNotificationsEnabled: true
+  });
+  assert.equal(expandedAudio.state.ambience, 'jazz_bossa_bloom');
+  assert.equal(expandedAudio.state.breakAmbience, 'chillwave_aqua_dream');
+  assert.equal(expandedAudio.state.bell, 'bell_harbour');
+  assert.equal(expandedAudio.state.countdownNotificationsEnabled, true);
 
   assert.equal(localDateKey(now), '2026-09-10');
 
@@ -130,7 +159,7 @@ const { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey } = require('./timer.js'
   const featureIds = [
     'task', 'goal', 'preset', 'long-break-min', 'cycle-length', 'week-chart',
     'history-list', 'collection-book', 'achievement-list', 'break-tip',
-    'notifications', 'favorite-sound', 'shuffle-favourites', 'break-ambience',
+    'notifications', 'countdown-notifications', 'favorite-sound', 'shuffle-favourites', 'break-ambience',
     'fade-audio', 'focus-mode', 'export-backup', 'import-backup'
   ];
   for (const id of featureIds) assert.match(html, new RegExp(`id="${id}"`));
@@ -143,9 +172,49 @@ const { BurrowTimer, DAY, BUILTIN_PRESETS, localDateKey } = require('./timer.js'
     if (!relative || relative === '/') continue;
     assert.equal(fs.existsSync(__dirname + '/' + relative), true, 'Missing offline asset: ' + relative);
   }
-  assert.match(serviceWorker, /mobile-11-focus-garden/);
+  assert.match(serviceWorker, /mobile-12-live-countdown/);
+  assert.match(serviceWorker, /notificationclick/);
+  assert.match(app, /bunny-burrow-countdown/);
+  assert.match(app, /bunny-burrow-completion/);
+  assert.match(app, /showNotification/);
+  assert.match(app, /setAppBadge/);
 
-  console.log('PASS: all 12 feature groups, migration, cycles, insights, backups and offline assets.');
+  assert.equal(AMBIENCE.filter(sound => sound !== 'none').length, 30);
+  assert.equal(BELLS.length, 7);
+  for (const sound of AMBIENCE.filter(sound => sound !== 'none')) {
+    assert.equal(fs.existsSync(`${__dirname}/audio/${sound}.wav`), true, `Missing sound file: ${sound}`);
+    assert.equal(offlineAssets.includes(`./audio/${sound}.wav`), true, `Sound is not cached offline: ${sound}`);
+    assert.match(html, new RegExp(`value="${sound}"`), `Missing sound option: ${sound}`);
+  }
+  for (const sound of BELLS) {
+    assert.equal(fs.existsSync(`${__dirname}/audio/${sound}.wav`), true, `Missing bell file: ${sound}`);
+    assert.equal(offlineAssets.includes(`./audio/${sound}.wav`), true, `Bell is not cached offline: ${sound}`);
+    assert.match(html, new RegExp(`value="${sound}"`), `Missing bell option: ${sound}`);
+  }
+
+  const hashes = new Set();
+  for (const sound of NEW_MUSIC) {
+    assert.equal(AMBIENCE.includes(sound), true, `Missing timer sound: ${sound}`);
+    const wav = fs.readFileSync(`${__dirname}/audio/${sound}.wav`);
+    assert.equal(wav.subarray(0, 4).toString(), 'RIFF');
+    assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
+    assert.equal(wav.readUInt16LE(22), 1, `${sound} should be mono`);
+    assert.equal(wav.readUInt32LE(24), 22050, `${sound} sample rate`);
+    assert.equal(wav.readUInt16LE(34), 16, `${sound} sample width`);
+    assert.ok(wav.length > 900000, `${sound} is unexpectedly short`);
+    hashes.add(crypto.createHash('sha256').update(wav).digest('hex'));
+  }
+  for (const sound of NEW_BELLS) {
+    assert.equal(BELLS.includes(sound), true, `Missing timer bell: ${sound}`);
+    const wav = fs.readFileSync(`${__dirname}/audio/${sound}.wav`);
+    assert.equal(wav.subarray(0, 4).toString(), 'RIFF');
+    assert.equal(wav.subarray(8, 12).toString(), 'WAVE');
+    assert.ok(wav.length > 100000, `${sound} is unexpectedly short`);
+    hashes.add(crypto.createHash('sha256').update(wav).digest('hex'));
+  }
+  assert.equal(hashes.size, NEW_MUSIC.length + NEW_BELLS.length, 'Every new sound must have distinct audio data');
+
+  console.log('PASS: timer, notification, migration, audio catalogue and offline PWA checks.');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;
