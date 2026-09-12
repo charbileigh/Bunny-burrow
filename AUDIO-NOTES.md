@@ -65,19 +65,20 @@ third-party recordings, samples, or copied melodies.
 
 ## Jazz, synthwave, chillwave and bell expansion
 
-- `jazz_velvet_swing.wav` — 80 BPM swing with Rhodes ninth chords, walking
-  upright-style bass, brushes and a lightly swung ride pattern.
-- `jazz_bossa_bloom.wav` — 120 BPM bossa nova with short nylon-style guitar
-  voicings, syncopated bass, clave and shaker.
-- `jazz_midnight_sax.wav` — 90 BPM modal jazz with a breathy monophonic lead,
-  sparse ride and sustained club-organ harmony.
-- `jazz_brass_parade.wav` — 120 BPM second-line jazz with tuba-like bass,
-  bright brass stabs and marching snare.
-- `jazz_piano_ballad.wav` — a slow, drumless 60 BPM piano ballad in 3/4.
-- `synthwave_arcade_drive.wav` — 120 BPM sixteenth-note pulse arpeggios,
-  gated bass and an energetic electronic kick/snare pattern.
-- `synthwave_cosmic_drift.wav` — slow 60 BPM pads, a spacious lead and
-  half-time toms, deliberately without the fast arcade arpeggio.
+- `jazz_velvet_swing.wav` — Velvet Swing: 80 BPM major-key swing with clean
+  warm keys, walking upright-style bass, brushes and a soft ride pattern.
+- `jazz_bossa_bloom.wav` — Bossa Bloom: 120 BPM major-key bossa nova with
+  light clean-guitar voicings, syncopated bass, clave and shaker.
+- `jazz_midnight_sax.wav` — Sunday Sax: 100 BPM friendly major-key jazz with a
+  smooth reed lead, warm piano voicings and restrained brushed drums.
+- `jazz_brass_parade.wav` — Garden Brass: cheerful 100 BPM jazz with rounded
+  horn phrases, a buoyant bass line and a soft backbeat.
+- `jazz_piano_ballad.wav` — Morning Piano: a bright, drumless 60 BPM piano
+  piece with simple major-seventh harmony and a gentle bass line.
+- `synthwave_arcade_drive.wav` — Candy Circuit: clean, upbeat 120 BPM
+  major-key arpeggios, rounded bass and softened electronic drums.
+- `synthwave_cosmic_drift.wav` — Starlight Float: airy 60 BPM major-key pads,
+  sparkling clean notes and a minimal pulse without dark drones or heavy toms.
 - `chillwave_sunset_tape.wav` — hazy 80 BPM detuned pads, glass plucks,
   synthetic tape dust and a lazy backbeat.
 - `chillwave_aqua_dream.wav` — drumless 60 BPM 3/4 pads, watery glass tones

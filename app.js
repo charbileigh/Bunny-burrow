@@ -27,9 +27,9 @@ const soundNames = {
   lofi_neon_bloom: 'Neon Bloom', lofi_vinyl_keys: 'Vinyl Keys',
   lofi_sleepy_strings: 'Sleepy Strings', lofi_music_box: 'Petal Music Box',
   jazz_velvet_swing: 'Velvet Swing', jazz_bossa_bloom: 'Bossa Bloom',
-  jazz_midnight_sax: 'Midnight Sax', jazz_brass_parade: 'Brass Parade',
-  jazz_piano_ballad: 'Piano Afterglow', synthwave_arcade_drive: 'Arcade Drive',
-  synthwave_cosmic_drift: 'Cosmic Drift', chillwave_sunset_tape: 'Sunset Tape',
+  jazz_midnight_sax: 'Sunday Sax', jazz_brass_parade: 'Garden Brass',
+  jazz_piano_ballad: 'Morning Piano', synthwave_arcade_drive: 'Candy Circuit',
+  synthwave_cosmic_drift: 'Starlight Float', chillwave_sunset_tape: 'Sunset Tape',
   chillwave_aqua_dream: 'Aqua Dream', chillwave_pastel_dusk: 'Pastel Dusk',
   none: 'Quiet focus'
 };

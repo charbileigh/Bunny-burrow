@@ -2,7 +2,7 @@
 
 // Change VERSION whenever you release new app files. Cache names include the
 // deployment scope, so another app on the same host keeps its own caches.
-const VERSION = 'mobile-12-live-countdown';
+const VERSION = 'mobile-13-clean-audio';
 const PREFIX = 'bunny-burrow:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const ASSETS = [
