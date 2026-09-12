@@ -26,6 +26,11 @@ const soundNames = {
   lofi_cloud_waltz: 'Cloud Waltz', lofi_pixel_night: 'Pixel Night',
   lofi_neon_bloom: 'Neon Bloom', lofi_vinyl_keys: 'Vinyl Keys',
   lofi_sleepy_strings: 'Sleepy Strings', lofi_music_box: 'Petal Music Box',
+  jazz_velvet_swing: 'Velvet Swing', jazz_bossa_bloom: 'Bossa Bloom',
+  jazz_midnight_sax: 'Midnight Sax', jazz_brass_parade: 'Brass Parade',
+  jazz_piano_ballad: 'Piano Afterglow', synthwave_arcade_drive: 'Arcade Drive',
+  synthwave_cosmic_drift: 'Cosmic Drift', chillwave_sunset_tape: 'Sunset Tape',
+  chillwave_aqua_dream: 'Aqua Dream', chillwave_pastel_dusk: 'Pastel Dusk',
   none: 'Quiet focus'
 };
 const breakSuggestions = [
@@ -58,6 +63,12 @@ let previewTimeout;
 let ambientFadeTimer;
 let lastCollection = '';
 let lastInsights = '';
+let lastCountdownNotificationAt = 0;
+let lastCountdownNotificationKey = '';
+let lastBadgeMinutes = null;
+let countdownNotificationFallback = null;
+let countdownNotificationPending = false;
+let countdownNotificationGeneration = 0;
 
 function save() {
   try { localStorage.setItem(storageKey, JSON.stringify(timer.serialise())); }
@@ -161,6 +172,7 @@ function render() {
   $('shuffle-favourites').checked = s.shuffleFavourites;
   $('fade-audio').checked = s.fadeAudio;
   $('notifications').checked = s.notificationsEnabled;
+  $('countdown-notifications').checked = s.countdownNotificationsEnabled;
 
   renderCollection();
   renderInsights();
@@ -301,12 +313,19 @@ function hydratePresets() {
 function mediaMetadata() {
   if (!('mediaSession' in navigator)) return;
   try {
+    const clock = formatClock(timer.state.remaining);
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: 'Bunny Burrow · ' + soundNames[currentSound()],
+      title: timer.state.started ? `${clock} remaining · Bunny Burrow` : 'Bunny Burrow · ' + soundNames[currentSound()],
       artist: timer.state.mode === 'focus' ? (timer.state.task || 'Your focus session') : 'Your gentle break',
+      album: soundNames[currentSound()],
       artwork: [{ src: new URL('icons/icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' }]
     });
     navigator.mediaSession.playbackState = ambient.paused ? 'paused' : 'playing';
+    if (timer.state.started && navigator.mediaSession.setPositionState) {
+      const duration = Math.max(1, timer.duration() / 1000);
+      const position = Math.max(0, Math.min(duration, duration - timer.state.remaining / 1000));
+      navigator.mediaSession.setPositionState({ duration, playbackRate: 1, position });
+    }
   } catch {}
 }
 
@@ -403,7 +422,129 @@ function ring() {
   });
 }
 
-function sendNotification(event) {
+const COUNTDOWN_NOTIFICATION_TAG = 'bunny-burrow-countdown';
+const COMPLETION_NOTIFICATION_TAG = 'bunny-burrow-completion';
+
+async function notificationRegistration() {
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) return null;
+  try { return await navigator.serviceWorker.getRegistration(); }
+  catch { return null; }
+}
+
+async function showAppNotification(title, options) {
+  const registration = await notificationRegistration();
+  if (registration?.showNotification) {
+    await registration.showNotification(title, options);
+    return;
+  }
+  const notification = new Notification(title, options);
+  if (options.tag === COUNTDOWN_NOTIFICATION_TAG) {
+    countdownNotificationFallback?.close();
+    countdownNotificationFallback = notification;
+  }
+}
+
+async function closeCountdownNotification() {
+  countdownNotificationGeneration++;
+  lastCountdownNotificationAt = 0;
+  lastCountdownNotificationKey = '';
+  countdownNotificationFallback?.close();
+  countdownNotificationFallback = null;
+  const registration = await notificationRegistration();
+  if (!registration?.getNotifications) return;
+  try {
+    const notifications = await registration.getNotifications({ tag: COUNTDOWN_NOTIFICATION_TAG });
+    notifications.forEach(notification => notification.close());
+  } catch {}
+}
+
+function syncAppBadge(show) {
+  if (!('setAppBadge' in navigator) && !('clearAppBadge' in navigator)) return;
+  const minutes = show ? Math.max(1, Math.ceil(timer.state.remaining / 60000)) : 0;
+  if (minutes === lastBadgeMinutes) return;
+  lastBadgeMinutes = minutes;
+  try {
+    const operation = minutes ? navigator.setAppBadge(minutes) : navigator.clearAppBadge();
+    operation?.catch?.(() => {});
+  } catch {}
+}
+
+function updateNotificationStatus(message = '') {
+  if (!('Notification' in window)) {
+    $('notification-status').textContent = 'Notifications are not supported by this browser.';
+    return;
+  }
+  if (message) {
+    $('notification-status').textContent = message;
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    $('notification-status').textContent = 'Notifications are blocked in this browser’s site settings.';
+    return;
+  }
+  const enabled = [];
+  if (timer.state.notificationsEnabled) enabled.push('finish alerts');
+  if (timer.state.countdownNotificationsEnabled) enabled.push('live countdown');
+  if (!enabled.length) {
+    $('notification-status').textContent = 'Turn on either option to request notification permission.';
+  } else if (timer.state.countdownNotificationsEnabled) {
+    $('notification-status').textContent = `${enabled.join(' and ')} on. The countdown updates while the browser keeps the PWA active; its finish time remains visible if updates pause.`;
+  } else {
+    $('notification-status').textContent = 'Finish alerts are on.';
+  }
+}
+
+async function syncCountdownNotification(force = false) {
+  const s = timer.state;
+  const available = s.countdownNotificationsEnabled && 'Notification' in window && Notification.permission === 'granted';
+  if (!available || !s.running) {
+    syncAppBadge(false);
+    if (force || lastCountdownNotificationKey || countdownNotificationFallback) await closeCountdownNotification();
+    return;
+  }
+
+  syncAppBadge(true);
+  const now = Date.now();
+  const seconds = Math.max(0, Math.ceil(s.remaining / 1000));
+  const cadence = document.visibilityState === 'visible' ? 1000 : 10000;
+  const key = `${s.mode}:${s.deadline}:${seconds}`;
+  if (countdownNotificationPending) return;
+  if (!force && (key === lastCountdownNotificationKey || now - lastCountdownNotificationAt < cadence)) return;
+
+  countdownNotificationPending = true;
+  const generation = ++countdownNotificationGeneration;
+  lastCountdownNotificationAt = now;
+  lastCountdownNotificationKey = key;
+  const clock = formatClock(s.remaining);
+  const mode = s.mode === 'focus' ? 'Focus' : s.isLongBreak ? 'Long break' : 'Break';
+  const finishTime = new Date(s.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const intention = s.mode === 'focus' && s.task ? `${s.task} · ` : '';
+  try {
+    await showAppNotification(`${mode} · ${clock} left`, {
+      body: `${intention}Ends at ${finishTime}. Open Bunny Burrow for the exact timer.`,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: COUNTDOWN_NOTIFICATION_TAG,
+      renotify: false,
+      silent: true,
+      requireInteraction: true,
+      timestamp: s.deadline,
+      data: { kind: 'countdown', deadline: s.deadline, mode: s.mode }
+    });
+    if (generation !== countdownNotificationGeneration || !timer.state.running || !timer.state.countdownNotificationsEnabled || Notification.permission !== 'granted') {
+      await closeCountdownNotification();
+      return;
+    }
+    mediaMetadata();
+  } catch {
+    lastCountdownNotificationAt = 0;
+    lastCountdownNotificationKey = '';
+  } finally {
+    countdownNotificationPending = false;
+  }
+}
+
+async function sendNotification(event) {
   const s = timer.state;
   if (!s.notificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
   const focusComplete = event.type === 'focus-complete';
@@ -411,7 +552,17 @@ function sendNotification(event) {
   const body = focusComplete
     ? `${companions[s.chosen].name} is fully grown. Time for a ${event.longBreak ? s.longBreakMinutes : s.breakMinutes}-minute break.`
     : 'Your next bunny is ready when you are.';
-  try { new Notification(title, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'bunny-burrow-timer' }); } catch {}
+  try {
+    await showAppNotification(title, {
+      body,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: COMPLETION_NOTIFICATION_TAG,
+      renotify: true,
+      timestamp: event.at,
+      data: { kind: 'completion', event: event.type }
+    });
+  } catch {}
 }
 
 function tick(silent = false) {
@@ -439,6 +590,7 @@ function tick(silent = false) {
     lastInsights = '';
   }
   render();
+  syncCountdownNotification(events.length > 0);
 }
 
 async function keepAwake() {
@@ -486,6 +638,7 @@ function start() {
   syncAmbient(true, true);
   keepAwake();
   render();
+  syncCountdownNotification(true);
 }
 
 function pause() {
@@ -495,6 +648,7 @@ function pause() {
   syncAmbient();
   releaseAwake();
   render();
+  syncCountdownNotification(true);
 }
 
 function stopSession() {
@@ -506,6 +660,7 @@ function stopSession() {
   releaseAwake();
   announce('Session stopped. Your unfinished progress was reset.');
   render();
+  syncCountdownNotification(true);
 }
 
 function changeDurations() {
@@ -527,25 +682,28 @@ function selectedPreset() {
   return type === 'builtin' ? BURROW_PRESETS[value] : timer.state.customPresets[Number(value)];
 }
 
-async function requestNotifications() {
+async function requestNotifications(event) {
+  const liveCountdown = event.target.id === 'countdown-notifications';
+  const stateKey = liveCountdown ? 'countdownNotificationsEnabled' : 'notificationsEnabled';
   if (!('Notification' in window)) {
-    $('notification-status').textContent = 'Notifications are not supported by this browser.';
-    $('notifications').checked = false;
+    timer.state[stateKey] = false;
+    event.target.checked = false;
+    updateNotificationStatus();
     return;
   }
-  if (!$('notifications').checked) {
-    timer.state.notificationsEnabled = false;
+  if (!event.target.checked) {
+    timer.state[stateKey] = false;
     save();
-    $('notification-status').textContent = 'Timer notifications are off.';
+    if (liveCountdown) await syncCountdownNotification(true);
+    updateNotificationStatus();
     return;
   }
   const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-  timer.state.notificationsEnabled = permission === 'granted';
-  $('notifications').checked = timer.state.notificationsEnabled;
-  $('notification-status').textContent = permission === 'granted'
-    ? 'Notifications are ready while the browser allows this app to run.'
-    : 'Notification permission was not granted.';
+  timer.state[stateKey] = permission === 'granted';
+  event.target.checked = timer.state[stateKey];
   save();
+  updateNotificationStatus(permission === 'granted' ? '' : 'Notification permission was not granted. You can change it in this browser’s site settings.');
+  if (liveCountdown) await syncCountdownNotification(true);
 }
 
 function exportBackup() {
@@ -573,6 +731,8 @@ async function importBackup(file) {
     save();
     syncAmbient();
     render();
+    updateNotificationStatus();
+    syncCountdownNotification(true);
     $('data-status').textContent = 'Backup restored successfully.';
   } catch (error) {
     $('data-status').textContent = error.message || 'This backup could not be restored.';
@@ -595,6 +755,7 @@ $('reset').onclick = () => {
   releaseAwake();
   announce('Timer reset. Begin again whenever you’re ready.');
   render();
+  syncCountdownNotification(true);
 };
 $('resume-audio').onclick = () => { tick(true); syncAmbient(true); };
 $('focus-min').onchange = changeDurations;
@@ -691,6 +852,7 @@ $('bell').onchange = () => {
   save();
 };
 $('notifications').onchange = requestNotifications;
+$('countdown-notifications').onchange = requestNotifications;
 $('preview-ambience').onclick = event => {
   if (!preview.paused) { stopPreview(); return; }
   playPreview(timer.state.ambience, timer.state.volume, soundNames[timer.state.ambience], event.currentTarget);
@@ -731,6 +893,7 @@ document.addEventListener('visibilitychange', () => {
   } else {
     stopPreview();
     save();
+    syncCountdownNotification(true);
     releaseAwake();
   }
 });
@@ -746,6 +909,11 @@ document.addEventListener('keydown', event => {
 });
 window.addEventListener('pagehide', save);
 window.addEventListener('pageshow', () => { tick(true); syncAmbient(true); });
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data?.type === 'BUNNY_BURROW_NOTIFICATION_OPENED') tick(true);
+  });
+}
 window.addEventListener('storage', event => {
   if (event.key !== storageKey || !event.newValue) return;
   try {
@@ -766,12 +934,9 @@ if (timer.state.running && currentSound() !== 'none') {
   if (!$('announcement').textContent) announce('Your saved session is up to date. Tap Resume sound to continue listening.');
   $('background-help').open = true;
 }
-if ('Notification' in window) {
-  $('notification-status').textContent = Notification.permission === 'granted'
-    ? 'Notifications are available.'
-    : 'Turn this on to request notification permission.';
-} else {
-  $('notification-status').textContent = 'Notifications are not supported by this browser.';
+updateNotificationStatus();
+if (!('Notification' in window)) {
   $('notifications').disabled = true;
+  $('countdown-notifications').disabled = true;
 }
 setInterval(tick, 250);

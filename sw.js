@@ -2,7 +2,7 @@
 
 // Change VERSION whenever you release new app files. Cache names include the
 // deployment scope, so another app on the same host keeps its own caches.
-const VERSION = 'mobile-11-focus-garden';
+const VERSION = 'mobile-12-live-countdown';
 const PREFIX = 'bunny-burrow:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const ASSETS = [
@@ -13,7 +13,12 @@ const ASSETS = [
   './audio/lofi_rainy_window.wav', './audio/lofi_lavender_evening.wav', './audio/lofi_sunday_sketchbook.wav',
   './audio/lofi_jazz_cafe.wav', './audio/lofi_cloud_waltz.wav', './audio/lofi_pixel_night.wav',
   './audio/lofi_neon_bloom.wav', './audio/lofi_vinyl_keys.wav', './audio/lofi_sleepy_strings.wav', './audio/lofi_music_box.wav',
-  './audio/bell_glass.wav', './audio/bell_chime.wav', './audio/bell_bowl.wav', './audio/bell_temple.wav', './audio/bell_twinkle.wav'
+  './audio/jazz_velvet_swing.wav', './audio/jazz_bossa_bloom.wav', './audio/jazz_midnight_sax.wav',
+  './audio/jazz_brass_parade.wav', './audio/jazz_piano_ballad.wav',
+  './audio/synthwave_arcade_drive.wav', './audio/synthwave_cosmic_drift.wav',
+  './audio/chillwave_sunset_tape.wav', './audio/chillwave_aqua_dream.wav', './audio/chillwave_pastel_dusk.wav',
+  './audio/bell_glass.wav', './audio/bell_chime.wav', './audio/bell_bowl.wav', './audio/bell_temple.wav', './audio/bell_twinkle.wav',
+  './audio/bell_harbour.wav', './audio/bell_clock_duet.wav'
 ];
 const assetURLs = new Set(ASSETS.map(path => new URL(path, self.registration.scope).href));
 
@@ -53,6 +58,20 @@ self.addEventListener('fetch', event => {
       return response;
     }
     return fetch(request);
+  })());
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const appWindow = windows.find(client => client.url.startsWith(self.registration.scope));
+    if (appWindow) {
+      await appWindow.focus();
+      appWindow.postMessage({ type: 'BUNNY_BURROW_NOTIFICATION_OPENED', data: event.notification.data || null });
+      return;
+    }
+    await self.clients.openWindow(self.registration.scope);
   })());
 });
 

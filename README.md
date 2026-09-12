@@ -12,17 +12,17 @@ your phone's browser. No native wrapper, server, build step or API key is needed
 - Configurable short/long breaks and two-to-eight-session Pomodoro cycles.
 - Daily and weekly focus minutes, streaks, favourites and a seven-day chart.
 - Search-free recent session history, a full companion collection book and five achievement badges.
-- Gentle break suggestions, optional browser notifications and a distraction-free focus view.
+- Separate finish alerts and a replace-in-place live countdown notification, plus a distraction-free focus view.
 - Favourite sound management, per-session shuffle, separate break ambience and gentle audio fades.
 - Local JSON backup and restore for settings, history and progress.
-- Focus sound picker with seven ambient choices, thirteen deliberately varied lo-fi tracks or quiet focus.
-- Five ending bells, including a deep temple gong and a bright twinkle sequence.
+- Focus sound picker with seven ambient choices and twenty-three music loops across lo-fi, jazz, synthwave and chillwave, or quiet focus.
+- Seven ending bells, including a deep harbour bell and a bright two-note clock duet.
 - Pause, continue or fully stop a session without earning an unfinished bunny.
 - Change the bunny, focus sound or ending bell while a session is live.
 - Thirteen companion colours and a gentle hop animation while the bunny grows.
 - A clear-burrow control and automatic rolling removal 24 hours after each bunny is earned.
 - Preview buttons, separate sound and bell volume, and an ending-bell switch.
-- All twenty-five WAV audio files are bundled and cached for offline playback.
+- All thirty-seven WAV audio files are bundled and cached for offline playback.
 - HTML audio playback and Media Session controls for supported lock screens.
 - Saved timer deadlines, bunny progress, sound choices and volume on this device.
 - Correct timer catch-up after switching apps or reopening; no duplicate bunnies.
@@ -38,6 +38,14 @@ audio to continue when you switch apps or lock the screen. On supported phones,
 the media panel can pause or resume the session. Other browsers or battery
 settings may suspend audio or JavaScript, so a background bell can be delayed
 or missed. Media Session provides controls, not a guarantee of background runtime.
+
+The optional live countdown uses one silent notification with a stable tag, so
+each update replaces the prior timer instead of filling the notification tray.
+It updates once per second while the PWA is visible and approximately every ten
+seconds while the browser continues running it in the background. The same
+notification always includes the exact finish time. Supported installed PWAs
+also show rounded minutes on their app badge and timer progress in Media Session.
+These are best-effort browser features, not a native background alarm.
 
 If the user fully closes the PWA, force-stops the browser, or the phone removes
 it from memory, audio stops and no offline alarm is guaranteed. There is no
@@ -57,13 +65,13 @@ this deliverable stays a PWA as requested.
 1. Extract `Bunny-Burrow-Mobile-App.zip`.
 2. Upload the extracted app files to the same folder as your existing PWA,
    replacing the old files and preserving the `audio` and `icons` folders.
-3. Upload ALL files, including `sw.js`, `timer.js`, `mobile.js` and all twenty-five WAVs.
+3. Upload ALL files, including `sw.js`, `timer.js`, `mobile.js` and all thirty-seven WAVs.
 4. Visit the hosted app online to let the browser download the update.
 5. Close all Bunny Burrow tabs and app windows, then reopen the hosted app.
    If the old version remains, repeat after the update has downloaded.
 6. Wait for **Ready offline** before going offline.
 
-The new service worker uses cache version `mobile-11-focus-garden`. An update waits
+The new service worker uses cache version `mobile-12-live-countdown`. An update waits
 until old app windows close so it does not replace files during a focus session.
 Normal updates do not clear saved progress. Do not clear site data unless you
 intend to reset the app's saved timer, settings and bunnies as well.
@@ -129,7 +137,7 @@ competing audio.
 - `mobile.js` — installation guidance and offline/update status.
 - `sw.js` — versioned app/audio caching and offline byte-range responses.
 - `manifest.webmanifest`, `icons/`, `bunny.png` — PWA identity and artwork.
-- `audio/` — all twenty focus loops and five bell files.
+- `audio/` — all thirty focus loops and seven bell files.
 - `README.md` — hosting, upgrade and behaviour instructions.
 
 ## Local preview and future changes
@@ -147,8 +155,9 @@ installation/build command for the downloadable PWA.
 
 Run `node tests.cjs` to check timer restoration, pause/resume, long-break
 cycles, presets, history, statistics, achievements, backup restoration,
-version-3/version-4 migration and offline audio ranges. JavaScript syntax and
-bundled asset references are also checked. Physical-phone notification,
+version-3/version-4/version-5 migration, live-notification wiring, generated WAV
+validation and offline audio ranges. JavaScript syntax and bundled asset
+references are also checked. Physical-phone notification,
 background playback and installation behaviour still depends on the browser
 and operating system. Try a one-minute focus and break, offline reopening and
 screen locking on your own phone.
@@ -157,7 +166,7 @@ screen locking on your own phone.
 
 The supplied ZIP already contained the sound pickers and offline timer model.
 This revision preserves the timer, audio and PWA foundation while adding a
-local-first planning and progress layer. Existing version-3 and version-4 saved
+local-first planning and progress layer. Existing version-3, version-4 and version-5 saved
 sessions and bunny history migrate automatically. The long-term history begins
 with focus sessions completed after this update because older saved data did not
 contain completion details such as tasks, duration or sound.
@@ -173,6 +182,12 @@ https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
 Browser audio playback restrictions:
 https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/play
 
+Notifications from a service worker:
+https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification
+
+Installed-app badges:
+https://developer.mozilla.org/en-US/docs/Web/API/Navigator/setAppBadge
+
 PWA installation:
 https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable
 
@@ -183,14 +198,14 @@ synthesized 24-second loops, created directly from noise and tones. They are
 not field recordings and contain no downloaded audio or third-party samples.
 No third-party recording licence or attribution is required for these additions.
 See AUDIO-NOTES.md and scripts/generate-ambience.py for provenance.
-All sixteen focus sound options can be previewed, selected, saved and played offline.
+These nature sounds can be previewed, selected, saved and played offline.
 Wait for the updated offline cache to finish before disconnecting.
 
 ## Lo-fi update
 
 Added Petal study, Moonlit notes and Cocoa break (original instrumental lo-fi),
 plus Forest trees (wind, rustling leaves and soft branch creaks). All prior
-ambient sounds and the three ending bells remain available. New selections
+ambient sounds and ending bells remain available. New selections
 use the existing previews, volume, saved preference and offline cache.
 The included generators document how the sample-free audio was made.
 
@@ -202,7 +217,7 @@ choices now use neutral beige and pearl filters. Colours use the original
 watercolour artwork with gentle CSS filters; no extra images need downloading.
 The two-row picker fits mobile screens and each colour has an accessible name.
 Existing rewards stay saved. Previously earned Honey/Clover bunnies appear in
-their new Biscuit/Pearl colours. All sixteen sounds and three bells remain included.
+their new Biscuit/Pearl colours. The expanded sound and bell library remains included.
 
 ## Additional playable lo-fi tracks
 
@@ -220,3 +235,17 @@ different from the mellow tracks already included. They use different tempos,
 meters, instruments and drum patterns: swung jazz-hop, a drumless 3/4 waltz,
 and brighter electronic lo-fi. All three use the same preview, saved-selection
 and offline features as the rest of the sound library.
+
+## Jazz, synthwave, chillwave and bell expansion
+
+The Jazz collection adds five deliberately different pieces: brushed Velvet
+Swing, guitar-led Bossa Bloom, modal Midnight Sax, lively Brass Parade and a
+drumless Piano Afterglow ballad. The Synthwave group adds fast, arpeggiated
+Arcade Drive and slow, spacious Cosmic Drift. The Chillwave group adds hazy
+Sunset Tape, drumless Aqua Dream and chopped-groove Pastel Dusk. Deep Harbour
+and Bright Clock Duet add contrasting low and high ending bells.
+
+Every addition uses the existing preview, live switching, saved preference and
+offline cache behavior. The deterministic source is in
+`scripts/generate-jazz-wave-audio.py`; provenance and musical details are in
+`AUDIO-NOTES.md`.

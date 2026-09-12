@@ -62,3 +62,33 @@ melodies. Source: `scripts/generate-distinct-lofi.py`.
 These additions were composed and synthesized with the deterministic
 `scripts/generate-new-audio.py` generator. They contain no downloaded or
 third-party recordings, samples, or copied melodies.
+
+## Jazz, synthwave, chillwave and bell expansion
+
+- `jazz_velvet_swing.wav` — 80 BPM swing with Rhodes ninth chords, walking
+  upright-style bass, brushes and a lightly swung ride pattern.
+- `jazz_bossa_bloom.wav` — 120 BPM bossa nova with short nylon-style guitar
+  voicings, syncopated bass, clave and shaker.
+- `jazz_midnight_sax.wav` — 90 BPM modal jazz with a breathy monophonic lead,
+  sparse ride and sustained club-organ harmony.
+- `jazz_brass_parade.wav` — 120 BPM second-line jazz with tuba-like bass,
+  bright brass stabs and marching snare.
+- `jazz_piano_ballad.wav` — a slow, drumless 60 BPM piano ballad in 3/4.
+- `synthwave_arcade_drive.wav` — 120 BPM sixteenth-note pulse arpeggios,
+  gated bass and an energetic electronic kick/snare pattern.
+- `synthwave_cosmic_drift.wav` — slow 60 BPM pads, a spacious lead and
+  half-time toms, deliberately without the fast arcade arpeggio.
+- `chillwave_sunset_tape.wav` — hazy 80 BPM detuned pads, glass plucks,
+  synthetic tape dust and a lazy backbeat.
+- `chillwave_aqua_dream.wav` — drumless 60 BPM 3/4 pads, watery glass tones
+  and soft synthetic bubbles.
+- `chillwave_pastel_dusk.wav` — 90 BPM chopped keyboard chords,
+  syncopated bass and a gentle breakbeat.
+- `bell_harbour.wav` — two low, slowly decaying inharmonic bell strikes.
+- `bell_clock_duet.wav` — a concise bright high/low two-note clock chime.
+
+All twelve files were composed and synthesized specifically for Bunny Burrow
+from mathematical oscillators and seeded noise. They contain no downloaded
+recordings, samples, copied melodies, or third-party sound libraries. The
+deterministic generator is `scripts/generate-jazz-wave-audio.py` (Python 3 and
+NumPy); runtime playback requires neither Python nor NumPy.
