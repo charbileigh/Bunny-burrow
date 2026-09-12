@@ -71,11 +71,41 @@ def voice(note, seconds, timbre="rhodes", decay=None):
         signal = np.sin(phase) + .55 * np.sin(2.01 * phase) * np.exp(-t * 1.8)
         signal += .22 * np.sin(4.08 * phase) * np.exp(-t * 4.5)
         decay = 1.8 if decay is None else decay
+    elif timbre == "clean_keys":
+        clean_phase = 2 * np.pi * frequency * t
+        signal = np.sin(clean_phase) + .18 * np.sin(2 * clean_phase)
+        signal += .045 * np.sin(3 * clean_phase)
+        decay = 1.35 if decay is None else decay
+    elif timbre == "soft_reed":
+        clean_phase = 2 * np.pi * frequency * t + .12 * np.sin(2 * np.pi * 5 * t)
+        signal = np.sin(clean_phase) + .13 * np.sin(3 * clean_phase)
+        signal += .035 * np.sin(5 * clean_phase)
+        decay = .08 if decay is None else decay
+    elif timbre == "soft_horn":
+        clean_phase = 2 * np.pi * frequency * t + .06 * np.sin(2 * np.pi * 4.7 * t)
+        signal = np.sin(clean_phase) + .2 * np.sin(2 * clean_phase)
+        signal += .055 * np.sin(3 * clean_phase)
+        decay = .18 if decay is None else decay
+    elif timbre == "clean_synth":
+        clean_phase = 2 * np.pi * frequency * t
+        signal = sum(np.sin(clean_phase * ratio) for ratio in (.998, 1, 1.002)) / 3
+        signal += .14 * np.sin(2 * clean_phase) + .035 * np.sin(3 * clean_phase)
+        decay = 1.8 if decay is None else decay
+    elif timbre == "air_pad":
+        clean_phase = 2 * np.pi * frequency * t
+        signal = sum(np.sin(clean_phase * ratio) for ratio in (.996, 1, 1.004)) / 3
+        signal += .09 * np.sin(2 * clean_phase)
+        decay = 0 if decay is None else decay
     else:
         signal = np.sin(phase)
         decay = 0 if decay is None else decay
 
-    envelope = adsr(t, .008 if timbre not in ("pad", "sax") else .12, .15 if timbre != "pad" else .8)
+    attack = {
+        "pad": .12, "sax": .12, "air_pad": .32,
+        "soft_reed": .045, "soft_horn": .035,
+    }.get(timbre, .008)
+    release = {"pad": .8, "air_pad": .9, "soft_reed": .2, "soft_horn": .16}.get(timbre, .15)
+    envelope = adsr(t, attack, release)
     if decay:
         envelope *= np.exp(-t * decay)
     return signal * envelope
@@ -165,141 +195,165 @@ def save(name, signal, level=.7, cutoff=7_000):
         output.writeframes((signal * 32_767).astype("<i2").tobytes())
 
 
-# Jazz 1 — 80 BPM swing, brushed kit, walking bass and Rhodes ninths.
+# Jazz 1 — clean 80 BPM swing with warm keys, brushes and walking bass.
 track = canvas()
 beat = 60 / 80
 progression = [
-    [50, 53, 57, 60, 64], [55, 59, 62, 65, 69],
-    [48, 52, 55, 59, 62], [45, 49, 52, 55, 58],
+    [48, 52, 55, 59, 62], [53, 57, 60, 64, 67],
+    [50, 53, 57, 60, 64], [55, 59, 62, 64, 69],
 ]
 for bar in range(8):
     start = bar * 4 * beat
     chord = progression[bar % 4]
-    add_chord(track, start, chord, 3.6, "rhodes", .052)
-    add_chord(track, start + 2.62 * beat, chord[1:], 1.2, "rhodes", .034)
-    for step, note in enumerate([chord[0] - 12, chord[1] - 12, chord[2] - 12, chord[3] - 12]):
-        add(track, start + step * beat, voice(note, .78, "upright"), .13)
+    add_chord(track, start, chord, 3.2, "clean_keys", .055)
+    add_chord(track, start + 2.7 * beat, chord[1:], .85, "clean_keys", .025)
+    bass = [chord[0] - 12, chord[2] - 12, chord[1] - 12, chord[3] - 12]
+    for step, note in enumerate(bass):
+        add(track, start + step * beat, voice(note, .68, "upright"), .105)
     for step in range(8):
-        swing = .15 if step % 2 else 0
-        add(track, start + (step / 2 + swing) * beat, hat(.075), .012)
+        swing = .12 if step % 2 else 0
+        add(track, start + (step / 2 + swing) * beat, hat(.06), .007)
     for step in (1, 3):
-        add(track, start + step * beat, brush(), .034)
-    add(track, start, kick(), .14)
-    add(track, start + 2.5 * beat, kick(), .08)
-save("jazz_velvet_swing", track, .69, 4_800)
+        add(track, start + step * beat, brush(.28), .024)
+save("jazz_velvet_swing", track, .64, 4_400)
 
 
-# Jazz 2 — 120 BPM bossa nova with nylon syncopation, clave and shaker.
+# Jazz 2 — light 120 BPM bossa nova with clean guitar and gentle percussion.
 track = canvas()
 beat = 60 / 120
 progression = [
-    [53, 57, 60, 64, 69], [52, 55, 59, 62, 67],
-    [50, 53, 57, 60, 64], [55, 59, 62, 65, 69],
+    [48, 52, 55, 57, 62], [53, 57, 60, 64, 67],
+    [50, 53, 57, 60, 64], [55, 59, 62, 64, 69],
 ]
 for bar in range(12):
     start = bar * 4 * beat
     chord = progression[bar % 4]
     for offset in (0, 1.5, 2.5, 3.5):
-        add_chord(track, start + offset * beat, chord, .75, "nylon", .044, .007)
+        add_chord(track, start + offset * beat, chord, .66, "nylon", .035, .008)
     for offset, note in ((0, chord[0] - 12), (1.5, chord[2] - 12), (2, chord[0] - 12), (3.5, chord[3] - 12)):
-        add(track, start + offset * beat, voice(note, .48, "upright"), .12)
+        add(track, start + offset * beat, voice(note, .42, "upright"), .085)
     for step in range(8):
-        add(track, start + step * beat / 2, hat(.055), .009 if step % 2 else .014)
+        add(track, start + step * beat / 2, hat(.045), .005 if step % 2 else .008)
     for offset in (0, 1.5, 2.5):
-        add(track, start + offset * beat, rim(), .036)
-save("jazz_bossa_bloom", track, .67, 5_600)
+        add(track, start + offset * beat, rim(), .018)
+save("jazz_bossa_bloom", track, .62, 5_000)
 
 
-# Jazz 3 — 90 BPM modal night-club lead with breathy sax and sparse ride.
+# Jazz 3 — friendly 100 BPM major-key sax stroll with warm piano harmony.
 track = canvas()
-beat = 60 / 90
-chords = [[45, 48, 52, 55, 59], [50, 53, 57, 60, 64], [43, 47, 50, 53, 57]]
-phrases = [69, 72, 74, 76, 74, 72, 67, 69, 65, 67, 69, 72]
-for bar in range(9):
+beat = 60 / 100
+chords = [
+    [48, 52, 55, 59], [53, 57, 60, 64],
+    [55, 59, 62, 64], [48, 52, 55, 57],
+]
+phrases = [67, 69, 72, 74, 76, 74, 72, 69, 67, 64, 67, 72, 74, 72, 69, 67]
+for bar in range(10):
     start = bar * 4 * beat
-    chord = chords[bar % 3]
-    add_chord(track, start, chord, 3.5, "organ", .026)
-    add(track, start, voice(chord[0] - 12, 1.25, "upright"), .14)
-    add(track, start + 2 * beat, voice(chord[2] - 12, 1.2, "upright"), .11)
+    chord = chords[bar % 4]
+    add_chord(track, start, chord, 3.1, "clean_keys", .035)
+    add(track, start, voice(chord[0] - 12, .95, "upright"), .085)
+    add(track, start + 2 * beat, voice(chord[2] - 12, .9, "upright"), .07)
     for step in range(4):
-        note = phrases[(bar * 4 + step) % len(phrases)] + (12 if bar in (4, 8) and step == 3 else 0)
-        add(track, start + (step + (.18 if step % 2 else 0)) * beat, voice(note, .68, "sax"), .052)
-    for step in range(4):
-        add(track, start + step * beat, hat(.16), .009)
-    add(track, start + 2 * beat, brush(.42), .022)
-save("jazz_midnight_sax", track, .68, 5_200)
+        note = phrases[(bar * 4 + step) % len(phrases)]
+        add(track, start + (step + (.1 if step % 2 else 0)) * beat, voice(note, .5, "soft_reed"), .038)
+    add(track, start + 2 * beat, brush(.3), .015)
+save("jazz_midnight_sax", track, .62, 4_600)
 
 
-# Jazz 4 — 120 BPM second-line parade with tuba, brass stabs and marching snare.
+# Jazz 4 — cheerful 100 BPM garden brass with soft horns and a light backbeat.
 track = canvas()
-beat = 60 / 120
-progression = [[48, 52, 55, 58], [53, 57, 60, 63], [55, 59, 62, 65]]
-for bar in range(24):
+beat = 60 / 100
+progression = [
+    [48, 52, 55, 57], [53, 57, 60, 62],
+    [55, 59, 62, 64], [48, 52, 55, 60],
+]
+melody = [67, 69, 72, 74, 72, 69, 67, 64]
+for bar in range(20):
     start = bar * 2 * beat
-    chord = progression[(bar // 2) % 3]
-    for offset, notes in ((0, chord), (.72, [note + 12 for note in chord[1:]]), (1.5, chord)):
-        add_chord(track, start + offset * beat, notes, .34, "brass", .035, .006)
-    add(track, start, voice(chord[0] - 24, .44, "brass"), .13)
-    add(track, start + beat, voice(chord[2] - 24, .4, "brass"), .11)
-    for step in range(4):
-        add(track, start + step * beat / 2, snare(.11), .025 if step % 2 else .038)
-    add(track, start, kick(.2), .15)
-save("jazz_brass_parade", track, .66, 6_200)
+    chord = progression[(bar // 2) % 4]
+    add_chord(track, start, chord, .6, "soft_horn", .026, .01)
+    add_chord(track, start + 1.25 * beat, chord[1:], .42, "soft_horn", .018, .008)
+    add(track, start + .55 * beat, voice(melody[bar % len(melody)], .38, "soft_horn"), .03)
+    add(track, start, voice(chord[0] - 12, .48, "upright"), .075)
+    add(track, start + beat, voice(chord[2] - 12, .42, "upright"), .06)
+    add(track, start + beat, brush(.24), .014)
+    if bar % 2 == 0:
+        add(track, start, kick(.18), .055)
+save("jazz_brass_parade", track, .61, 4_900)
 
 
-# Jazz 5 — 60 BPM drumless 3/4 piano ballad with wide, slow voicings.
+# Jazz 5 — bright, drumless 60 BPM 3/4 morning piano.
 track = canvas()
 beat = 1.0
 progression = [
-    [48, 52, 55, 59, 64], [45, 48, 52, 55, 60],
-    [50, 53, 57, 60, 65], [43, 47, 50, 53, 59],
+    [48, 52, 55, 59, 64], [53, 57, 60, 64, 67],
+    [55, 59, 62, 64, 69], [48, 52, 55, 57, 64],
 ]
-melody = [72, 74, 76, 71, 69, 72, 77, 76, 74, 71, 67, 69]
+melody = [72, 74, 76, 79, 76, 74, 72, 69, 67, 69, 72, 76]
 for bar in range(8):
     start = bar * 3 * beat
     chord = progression[bar % 4]
-    add_chord(track, start, chord, 4.6, "piano", .042, .025)
+    add_chord(track, start, chord, 4.0, "clean_keys", .042, .022)
     for step, index in enumerate((0, 2, 4, 1, 3, 2)):
-        add(track, start + step * beat / 2, voice(chord[index] + 12, 1.2, "piano"), .044)
-    add(track, start + .35 * beat, voice(melody[(bar * 2) % len(melody)], 1.4, "piano"), .038)
-    add(track, start + 1.7 * beat, voice(melody[(bar * 2 + 1) % len(melody)], 1.5, "piano"), .035)
-save("jazz_piano_ballad", track, .64, 4_700)
+        add(track, start + step * beat / 2, voice(chord[index] + 12, .9, "clean_keys"), .035)
+    add(track, start + .4 * beat, voice(melody[(bar * 2) % len(melody)], 1.05, "clean_keys"), .03)
+    add(track, start + 1.75 * beat, voice(melody[(bar * 2 + 1) % len(melody)], 1.1, "clean_keys"), .028)
+save("jazz_piano_ballad", track, .6, 4_300)
 
 
-# Synthwave 1 — 120 BPM arcade drive with sixteenth-note pulse and gated bass.
+# Synthwave 1 — upbeat 120 BPM clean synth arpeggios in a bright major key.
 track = canvas()
 beat = 60 / 120
-progression = [[45, 48, 52, 57], [41, 45, 48, 52], [48, 52, 55, 60], [43, 47, 50, 55]]
+progression = [
+    [48, 52, 55, 60], [53, 57, 60, 65],
+    [55, 59, 62, 67], [48, 52, 55, 60],
+]
 for bar in range(12):
     start = bar * 4 * beat
     chord = progression[bar % 4]
-    pattern = [0, 2, 1, 3, 2, 1, 0, 2, 1, 3, 2, 1, 0, 3, 2, 1]
+    add_chord(track, start, chord, 2.6, "air_pad", .018, .025)
+    pattern = [0, 1, 2, 1, 3, 2, 1, 2]
     for step, index in enumerate(pattern):
-        add(track, start + step * beat / 4, voice(chord[index] + 12, .16, "pulse"), .026)
-    for step in range(8):
-        add(track, start + step * beat / 2, voice(chord[0] - 12 + (12 if step in (3, 7) else 0), .22, "pulse"), .065)
-    for step in range(4):
-        add(track, start + step * beat, kick(.2), .17)
+        add(track, start + step * beat / 2, voice(chord[index] + 12, .3, "clean_synth"), .034)
+    for step, note in enumerate((chord[0] - 12, chord[0] - 12, chord[2] - 12, chord[0] - 12)):
+        add(track, start + step * beat, voice(note, .34, "clean_synth", 2.8), .05)
+    for step in (0, 2):
+        add(track, start + step * beat, kick(.18), .07)
     for step in (1, 3):
-        add(track, start + step * beat, snare(.22), .04)
-save("synthwave_arcade_drive", track, .68, 6_500)
+        add(track, start + step * beat, snare(.18, True), .018)
+save("synthwave_arcade_drive", track, .61, 5_400)
 
 
-# Synthwave 2 — 60 BPM half-time cosmic pads, slow lead and toms; no arpeggio.
+# Synthwave 2 — airy 60 BPM major-key pads and sparkling lead, without drones.
 track = canvas()
 beat = 1.0
-progression = [[41, 48, 53, 57], [45, 52, 57, 60], [38, 45, 50, 53]]
-lead = [65, 69, 72, 76, 74, 69, 67, 64, 62]
+progression = [
+    [48, 52, 55, 59], [53, 57, 60, 64],
+    [55, 59, 62, 64], [48, 52, 55, 60],
+]
+lead = [72, 76, 79, 76, 74, 72, 69, 72, 74, 76, 79, 81]
 for bar in range(6):
     start = bar * 4 * beat
-    chord = progression[bar % 3]
-    add_chord(track, start, chord, 6.2, "pad", .035, .04)
-    add(track, start, voice(chord[0] - 12, 3.6, "pulse"), .045)
-    add(track, start + .6 * beat, voice(lead[bar % len(lead)], 2.2, "sax"), .025)
-    add(track, start + 2.55 * beat, voice(lead[(bar + 3) % len(lead)], 1.35, "sax"), .022)
-    add(track, start, kick(.42), .1)
-    add(track, start + 2 * beat, tom(38, .7), .09)
-save("synthwave_cosmic_drift", track, .66, 5_000)
+    chord = progression[bar % 4]
+    add_chord(track, start, chord, 5.2, "air_pad", .032, .035)
+    add(track, start, voice(chord[0] - 12, 1.4, "clean_synth", 1.4), .035)
+    add(track, start + .75 * beat, voice(lead[(bar * 2) % len(lead)], 1.3, "glass"), .026)
+    add(track, start + 2.45 * beat, voice(lead[(bar * 2 + 1) % len(lead)], 1.15, "clean_synth"), .026)
+    add(track, start, kick(.24), .035)
+    add(track, start + 2 * beat, brush(.32), .008)
+save("synthwave_cosmic_drift", track, .59, 4_800)
+
+
+# Preserve the original deterministic stream for the unchanged chillwave and bells.
+rng.bit_generator.state = {
+    "bit_generator": "PCG64",
+    "state": {
+        "state": 3353950696983031675763634467474486940,
+        "inc": 66021640233878769094086984540963791413,
+    },
+    "has_uint32": 0,
+    "uinteger": 0,
+}
 
 
 # Chillwave 1 — 80 BPM sun-warmed detuned pads, tape dust and lazy backbeat.

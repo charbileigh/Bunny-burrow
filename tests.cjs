@@ -172,12 +172,21 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
     if (!relative || relative === '/') continue;
     assert.equal(fs.existsSync(__dirname + '/' + relative), true, 'Missing offline asset: ' + relative);
   }
-  assert.match(serviceWorker, /mobile-12-live-countdown/);
+  assert.match(serviceWorker, /mobile-13-clean-audio/);
   assert.match(serviceWorker, /notificationclick/);
   assert.match(app, /bunny-burrow-countdown/);
   assert.match(app, /bunny-burrow-completion/);
   assert.match(app, /showNotification/);
   assert.match(app, /setAppBadge/);
+
+  for (const label of ['Sunday Sax', 'Garden Brass', 'Morning Piano', 'Candy Circuit', 'Starlight Float']) {
+    assert.match(html, new RegExp(label), `Missing clean-audio label: ${label}`);
+    assert.match(app, new RegExp(label), `Missing clean-audio display name: ${label}`);
+  }
+  for (const oldLabel of ['Midnight Sax', 'Brass Parade', 'Piano Afterglow', 'Arcade Drive', 'Cosmic Drift']) {
+    assert.doesNotMatch(html, new RegExp(oldLabel), `Old audio label remains: ${oldLabel}`);
+    assert.doesNotMatch(app, new RegExp(oldLabel), `Old audio display name remains: ${oldLabel}`);
+  }
 
   assert.equal(AMBIENCE.filter(sound => sound !== 'none').length, 30);
   assert.equal(BELLS.length, 7);

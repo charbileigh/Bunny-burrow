@@ -71,7 +71,7 @@ this deliverable stays a PWA as requested.
    If the old version remains, repeat after the update has downloaded.
 6. Wait for **Ready offline** before going offline.
 
-The new service worker uses cache version `mobile-12-live-countdown`. An update waits
+The new service worker uses cache version `mobile-13-clean-audio`. An update waits
 until old app windows close so it does not replace files during a focus session.
 Normal updates do not clear saved progress. Do not clear site data unless you
 intend to reset the app's saved timer, settings and bunnies as well.
@@ -238,10 +238,10 @@ and offline features as the rest of the sound library.
 
 ## Jazz, synthwave, chillwave and bell expansion
 
-The Jazz collection adds five deliberately different pieces: brushed Velvet
-Swing, guitar-led Bossa Bloom, modal Midnight Sax, lively Brass Parade and a
-drumless Piano Afterglow ballad. The Synthwave group adds fast, arpeggiated
-Arcade Drive and slow, spacious Cosmic Drift. The Chillwave group adds hazy
+The Jazz collection adds five deliberately different pieces: clean, brushed
+Velvet Swing; light guitar-led Bossa Bloom; warm, major-key Sunday Sax;
+cheerful Garden Brass; and bright, drumless Morning Piano. The Synthwave group
+adds upbeat Candy Circuit and airy Starlight Float. The Chillwave group adds hazy
 Sunset Tape, drumless Aqua Dream and chopped-groove Pastel Dusk. Deep Harbour
 and Bright Clock Duet add contrasting low and high ending bells.
 
