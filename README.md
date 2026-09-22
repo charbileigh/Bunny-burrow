@@ -6,9 +6,16 @@ your phone's browser. No native wrapper, server, build step or API key is needed
 
 ## What changed
 
+- Five light palettes (Blush, Lavender, Sage, Sky and Peach) and five dark
+  palettes (Plum, Midnight, Forest, Cocoa and Rose), with a saved choice per mode.
+- Eight built-in focus rhythms with a preview of their short break, long break
+  and cycle length. Existing custom presets remain available.
+- Detailed session history expires 24 hours after each session finishes.
+  Summary totals preserve weekly statistics, streaks, favourites, the collection
+  book and earned achievements without retaining expired task descriptions.
 - Daily session goals with a visible progress bar.
 - Task intentions saved with each completed focus session.
-- Study Sprint, Deep Work and Quick Task presets, plus up to eight custom presets.
+- Up to eight saved custom presets alongside the built-in choices.
 - Configurable short/long breaks and two-to-eight-session Pomodoro cycles.
 - Daily and weekly focus minutes, streaks, favourites and a seven-day chart.
 - Search-free recent session history, a full companion collection book and five achievement badges.
@@ -27,7 +34,7 @@ your phone's browser. No native wrapper, server, build step or API key is needed
 - Saved timer deadlines, bunny progress, sound choices and volume on this device.
 - Correct timer catch-up after switching apps or reopening; no duplicate bunnies.
 - Offline audio byte-range support for mobile browsers that seek within files.
-- Updated offline cache version, preserving the existing pink/purple layout.
+- Updated offline cache version, preserving the existing layout and original pink/purple palettes.
 
 ## Important: background versus fully closed
 
@@ -71,7 +78,7 @@ this deliverable stays a PWA as requested.
    If the old version remains, repeat after the update has downloaded.
 6. Wait for **Ready offline** before going offline.
 
-The new service worker uses cache version `mobile-13-clean-audio`. An update waits
+The new service worker uses cache version `mobile-14-palettes-presets-history`. An update waits
 until old app windows close so it does not replace files during a focus session.
 Normal updates do not clear saved progress. Do not clear site data unless you
 intend to reset the app's saved timer, settings and bunnies as well.
@@ -123,15 +130,46 @@ policies can affect what you hear.
 The timer, preferences, task, presets, focus history and bunny history are stored
 locally for this host/path. They are not sent to a server or synced between
 devices. Each earned bunny is time-stamped and remains visible for 24 hours,
-while long-term session history remains available for statistics and the
-collection book. The Clear burrow button removes the currently displayed
-bunnies without erasing focus history. Export a JSON backup before clearing
+and each detailed focus-session entry expires 24 hours after completion. Expiry
+runs while the app is open, when it is reopened and before a backup is exported.
+Older backups are also cleaned when restored. Daily totals, companion/sound
+counts and achievement progress are retained; expired task text and individual
+completion timestamps are removed. The Clear burrow button removes the currently
+displayed bunnies without erasing recent sessions or summary progress.
+Export a JSON backup before clearing
 website data or moving devices. Use one open window for playback to avoid
 competing audio.
 
+## Colours and focus rhythms
+
+Open **Colours → Make this corner yours** to choose a light or dark palette.
+Choosing a colour also switches to that mode. The header's Daylight/Moonlight
+button switches between your saved choices. Colour choices stay on the current
+device, like the existing focus-view preference.
+
+Choose a focus preset, review its timings, then tap **Apply preset**. Short
+breaks follow each focus session until the longer break at the end of the cycle.
+The next focus session starts when you are ready. The existing three presets
+keep their original timings.
+
+| Preset | Focus | Short break | Long break | Long break after |
+| --- | ---: | ---: | ---: | ---: |
+| Gentle Start | 10 min | 2 min | 10 min | 4 sessions |
+| Quick Task | 15 min | 3 min | 10 min | 4 sessions |
+| Study Sprint | 25 min | 5 min | 15 min | 4 sessions |
+| Steady Pace | 30 min | 5 min | 20 min | 4 sessions |
+| Creative Flow | 45 min | 10 min | 20 min | 3 sessions |
+| Deep Work | 50 min | 10 min | 25 min | 3 sessions |
+| Focus Hour | 60 min | 10 min | 30 min | 2 sessions |
+| Extended Focus | 90 min | 15 min | 30 min | 2 sessions |
+
+You can still enter your own 1–120 minute focus time, 1–60 minute breaks and
+2–8 session cycle, then save it as a custom preset. Timings stay locked while
+a session is running or paused. Themes, companions and sounds can change live.
+
 ## Files
 
-- `index.html`, `style.css` — existing app design with new sound controls.
+- `index.html`, `style.css`, `themes.css` — app layout, controls and colour palettes.
 - `app.js` — UI, sound playback, previews, media controls and local saving.
 - `timer.js` — independently testable timer state and deadline calculation.
 - `mobile.js` — installation guidance and offline/update status.
@@ -153,21 +191,21 @@ installation/build command for the downloadable PWA.
 
 ## Validation and phone checks
 
-Run `node tests.cjs` to check timer restoration, pause/resume, long-break
-cycles, presets, history, statistics, achievements, backup restoration,
-version-3/version-4/version-5 migration, live-notification wiring, generated WAV
+Run `node tests.cjs` to check timer restoration, pause/resume, all preset cycles,
+exact 24-hour history expiry, retained statistics and achievements, backup
+restoration, version-3 through version-7 migration, live-notification wiring, generated WAV
 validation and offline audio ranges. JavaScript syntax and bundled asset
 references are also checked. Physical-phone notification,
 background playback and installation behaviour still depends on the browser
 and operating system. Try a one-minute focus and break, offline reopening and
 screen locking on your own phone.
 
-## This update
+## Earlier planning and progress update
 
 The supplied ZIP already contained the sound pickers and offline timer model.
 This revision preserves the timer, audio and PWA foundation while adding a
 local-first planning and progress layer. Existing version-3, version-4 and version-5 saved
-sessions and bunny history migrate automatically. The long-term history begins
+sessions and bunny history migrate automatically. The recorded progress begins
 with focus sessions completed after this update because older saved data did not
 contain completion details such as tasks, duration or sound.
 

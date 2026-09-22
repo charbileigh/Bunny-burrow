@@ -21,9 +21,14 @@
     'bell_harbour', 'bell_clock_duet'
   ];
   const BUILTIN_PRESETS = {
+    gentle: { name: 'Gentle Start', focus: 10, break: 2, longBreak: 10, cycle: 4 },
+    quick: { name: 'Quick Task', focus: 15, break: 3, longBreak: 10, cycle: 4 },
     study: { name: 'Study Sprint', focus: 25, break: 5, longBreak: 15, cycle: 4 },
+    steady: { name: 'Steady Pace', focus: 30, break: 5, longBreak: 20, cycle: 4 },
+    creative: { name: 'Creative Flow', focus: 45, break: 10, longBreak: 20, cycle: 3 },
     deep: { name: 'Deep Work', focus: 50, break: 10, longBreak: 25, cycle: 3 },
-    quick: { name: 'Quick Task', focus: 15, break: 3, longBreak: 10, cycle: 4 }
+    hour: { name: 'Focus Hour', focus: 60, break: 10, longBreak: 30, cycle: 2 },
+    extended: { name: 'Extended Focus', focus: 90, break: 15, longBreak: 30, cycle: 2 }
   };
 
   const integer = (value, fallback, min, max) => Number.isInteger(value) && value >= min && value <= max ? value : fallback;
@@ -34,18 +39,52 @@
     const date = new Date(timestamp);
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
   };
-  const startOfLocalDay = timestamp => {
-    const date = new Date(timestamp);
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayOffsetKey = (now, offset) => {
+    const date = new Date(now);
+    // Calendar arithmetic also works on 23- and 25-hour daylight-saving days.
+    date.setDate(date.getDate() - offset);
+    return localDateKey(date);
   };
-  const dayOffsetKey = (now, offset) => localDateKey(startOfLocalDay(now) - offset * DAY);
+
+  // Expired sessions retain only totals, never task text or individual timestamps.
+  const emptyProgress = () => ({ days: {}, bunnies: Array(13).fill(0), sounds: {}, morning: false, quiet: false });
+
+  function addToProgress(progress, entry) {
+    const key = localDateKey(entry.at);
+    const day = progress.days[key] ||= { sessions: 0, minutes: 0 };
+    day.sessions++;
+    day.minutes += entry.minutes;
+    progress.bunnies[entry.bunny]++;
+    progress.sounds[entry.sound] = (progress.sounds[entry.sound] || 0) + 1;
+    progress.morning ||= new Date(entry.at).getHours() < 9;
+    progress.quiet ||= entry.sound === 'none';
+  }
+
+  function normaliseProgress(raw) {
+    const progress = emptyProgress();
+    if (!raw || typeof raw !== 'object') return progress;
+    for (const [key, day] of Object.entries(raw.days || {})) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || localDateKey(new Date(key + 'T12:00:00')) !== key) continue;
+      const sessions = integer(day?.sessions, 0, 0, 1000000);
+      const minutes = integer(day?.minutes, 0, 0, 120000000);
+      if (sessions && minutes) progress.days[key] = { sessions, minutes };
+    }
+    progress.bunnies = progress.bunnies.map((_, index) => integer(raw.bunnies?.[index], 0, 0, 1000000));
+    for (const sound of AMBIENCE) {
+      const count = integer(raw.sounds?.[sound], 0, 0, 1000000);
+      if (count) progress.sounds[sound] = count;
+    }
+    progress.morning = raw.morning === true;
+    progress.quiet = raw.quiet === true;
+    return progress;
+  }
 
   function fresh() {
     return {
-      version: 6, mode: 'focus', running: false, started: false, isLongBreak: false,
+      version: 7, mode: 'focus', running: false, started: false, isLongBreak: false,
       remaining: 1500000, deadline: 0, focusMinutes: 25, breakMinutes: 5,
       longBreakMinutes: 15, cycleLength: 4, cycleProgress: 0,
-      chosen: 0, earned: [], earnedTotal: 0, history: [], task: '',
+      chosen: 0, earned: [], earnedTotal: 0, history: [], progress: emptyProgress(), task: '',
       dailyGoal: 4, ambience: 'fire', activeAmbience: 'fire', breakAmbience: 'none',
       favourites: ['fire', 'lofi_petal'], shuffleFavourites: false, fadeAudio: true,
       bell: 'bell_glass', volume: .35, bellVolume: .65, bellEnabled: true,
@@ -56,7 +95,7 @@
   function normaliseHistory(raw) {
     if (!Array.isArray(raw)) return [];
     return raw.map(entry => {
-      if (!entry || !Number.isFinite(entry.at)) return null;
+      if (!entry || !Number.isFinite(entry.at) || !Number.isFinite(new Date(entry.at).getTime())) return null;
       return {
         at: entry.at,
         minutes: integer(entry.minutes, 25, 1, 120),
@@ -85,7 +124,7 @@
   class BurrowTimer {
     constructor(raw, now = Date.now()) {
       this.state = fresh();
-      if (!raw || ![3, 4, 5, 6].includes(raw.version)) return;
+      if (!raw || ![3, 4, 5, 6, 7].includes(raw.version)) return;
       const s = this.state;
       s.focusMinutes = integer(raw.focusMinutes, 25, 1, 120);
       s.breakMinutes = integer(raw.breakMinutes, 5, 1, 60);
@@ -111,6 +150,7 @@
       s.dailyGoal = integer(raw.dailyGoal, 4, 1, 20);
       s.customPresets = normalisePresets(raw.customPresets);
       s.history = normaliseHistory(raw.history);
+      s.progress = raw.version === 7 ? normaliseProgress(raw.progress) : emptyProgress();
 
       const migratedAt = Number.isFinite(raw.savedAt) ? raw.savedAt : now;
       s.earned = Array.isArray(raw.earned) ? raw.earned.map(entry => {
@@ -137,9 +177,15 @@
     }
 
     prune(now = Date.now()) {
-      const before = this.state.earned.length;
-      this.state.earned = this.state.earned.filter(entry => now - entry.at < DAY);
-      return before - this.state.earned.length;
+      const s = this.state;
+      const before = s.earned.length + s.history.length;
+      s.earned = s.earned.filter(entry => now - entry.at < DAY);
+      s.history = s.history.filter(entry => {
+        if (now - entry.at < DAY) return true;
+        addToProgress(s.progress, entry);
+        return false;
+      });
+      return before - s.earned.length - s.history.length;
     }
 
     chooseSessionSound(random = Math.random) {
@@ -163,7 +209,8 @@
           s.earned = s.earned.slice(-100);
           s.earnedTotal++;
           s.history.push({ at, minutes: s.focusMinutes, task: s.task, bunny: s.chosen, sound: s.activeAmbience });
-          s.history = s.history.slice(-HISTORY_LIMIT);
+          // Keep summary totals even if an unusually busy day reaches the detail limit.
+          while (s.history.length > HISTORY_LIMIT) addToProgress(s.progress, s.history.shift());
           s.cycleProgress++;
           s.isLongBreak = s.cycleProgress >= s.cycleLength;
           if (s.isLongBreak) s.cycleProgress = 0;
@@ -181,6 +228,8 @@
           events.push({ type: 'break-complete', at });
         }
       }
+      // Recovered sessions may themselves be over 24 hours old.
+      this.prune(now);
       if (s.running) s.remaining = Math.max(0, Math.min(this.duration(), s.deadline - now));
       return events;
     }
@@ -259,28 +308,19 @@
     }
 
     clearHistory() {
+      this.state.history.forEach(entry => addToProgress(this.state.progress, entry));
       this.state.history = [];
-      this.state.cycleProgress = 0;
     }
 
     stats(now = Date.now()) {
-      const history = this.state.history;
+      const progress = normaliseProgress(this.state.progress);
+      this.state.history.forEach(entry => addToProgress(progress, entry));
       const today = localDateKey(now);
       const weekKeys = Array.from({ length: 7 }, (_, index) => dayOffsetKey(now, 6 - index));
-      const byDay = Object.fromEntries(weekKeys.map(key => [key, { sessions: 0, minutes: 0 }]));
-      const bunnyCounts = Array(13).fill(0);
-      const soundCounts = {};
-      const allDayMinutes = {};
-      for (const entry of history) {
-        const key = localDateKey(entry.at);
-        if (byDay[key]) {
-          byDay[key].sessions++;
-          byDay[key].minutes += entry.minutes;
-        }
-        allDayMinutes[key] = (allDayMinutes[key] || 0) + entry.minutes;
-        bunnyCounts[entry.bunny]++;
-        soundCounts[entry.sound] = (soundCounts[entry.sound] || 0) + 1;
-      }
+      const byDay = Object.fromEntries(weekKeys.map(key => [key, progress.days[key] || { sessions: 0, minutes: 0 }]));
+      const bunnyCounts = progress.bunnies;
+      const soundCounts = progress.sounds;
+      const allDayMinutes = Object.fromEntries(Object.entries(progress.days).map(([key, day]) => [key, day.minutes]));
       let streak = 0;
       for (let offset = 0; offset < 366; offset++) {
         if (allDayMinutes[dayOffsetKey(now, offset)] > 0) streak++;
@@ -294,24 +334,29 @@
         todayMinutes: byDay[today]?.minutes || 0,
         weekSessions: weekKeys.reduce((sum, key) => sum + byDay[key].sessions, 0),
         weekMinutes: weekKeys.reduce((sum, key) => sum + byDay[key].minutes, 0),
+        totalSessions: bunnyCounts.reduce((sum, count) => sum + count, 0),
+        morning: progress.morning, quiet: progress.quiet,
         streak, favouriteBunny, favouriteSound, byDay, weekKeys, bunnyCounts, allDayMinutes
       };
     }
 
     achievements(now = Date.now()) {
       const stats = this.stats(now);
-      const history = this.state.history;
       return {
-        first_hop: history.length >= 1,
-        cosy_morning: history.some(entry => new Date(entry.at).getHours() < 9),
+        first_hop: stats.totalSessions >= 1,
+        cosy_morning: stats.morning,
         deep_burrow: Object.values(stats.allDayMinutes).some(minutes => minutes >= 100),
-        little_routine: stats.streak >= 3,
-        quiet_companion: history.some(entry => entry.sound === 'none')
+        little_routine: Object.keys(stats.allDayMinutes).some(key => {
+          const date = new Date(key + 'T12:00:00');
+          return [0, 1, 2].every(offset => stats.allDayMinutes[dayOffsetKey(date, offset)] > 0);
+        }),
+        quiet_companion: stats.quiet
       };
     }
 
     serialise(now = Date.now()) {
-      this.state.version = 6;
+      this.prune(now);
+      this.state.version = 7;
       return { ...this.state, savedAt: now };
     }
 
@@ -323,7 +368,7 @@
       if (!backup || backup.app !== 'Bunny Burrow' || backup.backupVersion !== 1 || !backup.data) {
         throw new Error('This is not a Bunny Burrow backup.');
       }
-      if (![3, 4, 5, 6].includes(backup.data.version)) throw new Error('This backup version is not supported.');
+      if (![3, 4, 5, 6, 7].includes(backup.data.version)) throw new Error('This backup version is not supported.');
       return new BurrowTimer(backup.data, now);
     }
   }

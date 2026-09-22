@@ -14,6 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="themes.css">
 </head>
 <body>
   <div class="shell">
@@ -21,7 +22,7 @@
       <a class="brand" href="./"><span aria-hidden="true">✿</span> bunny burrow<span class="brand-note">a little time to focus</span></a>
       <div class="header-actions">
         <button id="focus-mode" class="icon-button" type="button">◉ <span>Focus view</span></button>
-        <button id="theme" class="icon-button" type="button" aria-label="Switch to purple dark mode">☾ <span>Moonlight</span></button>
+        <button id="theme" class="icon-button" type="button" aria-label="Switch to dark mode">☾ <span>Moonlight</span></button>
       </div>
     </header>
 
@@ -82,13 +83,23 @@
             <span class="eyebrow">FOCUS PRESETS</span>
             <strong>Choose your rhythm</strong>
           </div>
-          <select id="preset" aria-label="Focus preset"></select>
+          <select id="preset" aria-label="Focus preset" aria-describedby="preset-details"></select>
+          <p id="preset-details" class="setting-note" aria-live="polite"></p>
           <div class="button-row">
             <button id="apply-preset" class="small-button" type="button">Apply preset</button>
             <button id="save-preset" class="text-button" type="button">Save current</button>
           </div>
         </article>
       </section>
+
+      <details class="feature-panel appearance-panel">
+        <summary><span><span class="eyebrow">COLOURS</span><strong>Make this corner yours</strong></span><span aria-hidden="true">＋</span></summary>
+        <div class="palette-groups">
+          <fieldset><legend>Light mode</legend><div id="light-palettes" class="palette-options"></div></fieldset>
+          <fieldset><legend>Dark mode</legend><div id="dark-palettes" class="palette-options"></div></fieldset>
+        </div>
+        <p id="palette-status" class="setting-note" role="status"></p>
+      </details>
 
       <section class="settings-grid" aria-label="Session settings">
         <div class="setting-block">
@@ -207,7 +218,8 @@
       </details>
 
       <details class="feature-panel">
-        <summary><span><span class="eyebrow">SESSION HISTORY</span><strong>Your recent focus</strong></span><span aria-hidden="true">＋</span></summary>
+        <summary><span><span class="eyebrow">SESSION HISTORY</span><strong>Your last 24 hours</strong></span><span aria-hidden="true">＋</span></summary>
+        <p class="setting-note history-note">Each session is removed from this list 24 hours after it finishes. Your progress totals, collection and achievements stay saved.</p>
         <ul id="history-list" class="history-list"></ul>
       </details>
 
@@ -222,7 +234,7 @@
         <article class="tool-card">
           <span class="eyebrow">BACKUP AND RESTORE</span>
           <h2>Keep your progress portable</h2>
-          <p>Download your settings and history, then restore them on another device.</p>
+          <p>Download your settings, recent sessions and progress totals, then restore them on another device.</p>
           <div class="button-row">
             <button id="export-backup" class="small-button" type="button">Export backup</button>
             <label class="file-button">Restore backup<input id="import-backup" type="file" accept="application/json,.json"></label>

@@ -2,11 +2,11 @@
 
 // Change VERSION whenever you release new app files. Cache names include the
 // deployment scope, so another app on the same host keeps its own caches.
-const VERSION = 'mobile-13-clean-audio';
+const VERSION = 'mobile-14-palettes-presets-history';
 const PREFIX = 'bunny-burrow:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const ASSETS = [
-  './', './index.html', './style.css', './app.js', './mobile.js',
+  './', './index.html', './style.css', './themes.css', './app.js', './mobile.js',
   './bunny.png', './manifest.webmanifest', './icons/icon-192.png',
   './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
   './timer.js', './audio/fire.wav', './audio/beach.wav', './audio/ocean.wav', './audio/rain.wav', './audio/forest.wav', './audio/stream.wav', './audio/forest_trees.wav', './audio/lofi_petal.wav', './audio/lofi_moon.wav', './audio/lofi_cocoa.wav',

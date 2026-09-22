@@ -1,0 +1,183 @@
+/* Each palette supplies the existing design tokens, including native controls. */
+body[data-palette="blush"] {
+  --bg: #fce9f0;
+  --card: #fff7fa;
+  --text: #563344;
+  --muted: #795766;
+  --line: #ecd3de;
+  --accent: #aa416e;
+  --accent-soft: #f8dce9;
+  --panel: #fff1f6;
+  --shadow: #ae587016;
+  --scene: #f6d8e5;
+}
+
+body[data-palette="lavender"] {
+  --bg: #efeafa;
+  --card: #fcfaff;
+  --text: #40334f;
+  --muted: #675275;
+  --line: #dcd0ec;
+  --accent: #73509c;
+  --accent-soft: #e4d8f4;
+  --panel: #f5effc;
+  --shadow: #73509c18;
+  --scene: #dfd2f1;
+}
+
+body[data-palette="sage"] {
+  --bg: #e7efe6;
+  --card: #f8fcf7;
+  --text: #2f4835;
+  --muted: #4b6250;
+  --line: #c9ddcb;
+  --accent: #3d7450;
+  --accent-soft: #d4e7d6;
+  --panel: #eef6ed;
+  --shadow: #3d745018;
+  --scene: #cee1ce;
+}
+
+body[data-palette="sky"] {
+  --bg: #e5eff9;
+  --card: #f7fbff;
+  --text: #30465c;
+  --muted: #4b6075;
+  --line: #c9dcec;
+  --accent: #366f9b;
+  --accent-soft: #d3e6f5;
+  --panel: #edf5fc;
+  --shadow: #366f9b18;
+  --scene: #ccdfef;
+}
+
+body[data-palette="peach"] {
+  --bg: #f9eade;
+  --card: #fffaf5;
+  --text: #573d31;
+  --muted: #715545;
+  --line: #ead1bd;
+  --accent: #a25234;
+  --accent-soft: #f3dac5;
+  --panel: #fff1e6;
+  --shadow: #a2523418;
+  --scene: #f0d5bc;
+}
+
+body[data-palette="plum"] {
+  --bg: #241a35;
+  --card: #30223f;
+  --text: #f4eafa;
+  --muted: #c0a9d1;
+  --line: #50385f;
+  --accent: #d4a0ee;
+  --accent-soft: #50345f;
+  --panel: #352546;
+  --shadow: #130b202e;
+  --scene: #503563;
+}
+
+body[data-palette="midnight"] {
+  --bg: #151f33;
+  --card: #1e2b44;
+  --text: #e8f1fc;
+  --muted: #b0c6e3;
+  --line: #374d70;
+  --accent: #9dc7ff;
+  --accent-soft: #304969;
+  --panel: #24344c;
+  --shadow: #090f222e;
+  --scene: #334f76;
+}
+
+body[data-palette="forest"] {
+  --bg: #152a23;
+  --card: #1e382e;
+  --text: #e7f5e9;
+  --muted: #b4d6bd;
+  --line: #365949;
+  --accent: #a1d6b1;
+  --accent-soft: #315942;
+  --panel: #243f33;
+  --shadow: #081e162e;
+  --scene: #345a43;
+}
+
+body[data-palette="cocoa"] {
+  --bg: #2b201c;
+  --card: #392b24;
+  --text: #f9eddf;
+  --muted: #ddc1aa;
+  --line: #604739;
+  --accent: #edbd91;
+  --accent-soft: #604333;
+  --panel: #413027;
+  --shadow: #1b100d2e;
+  --scene: #634835;
+}
+
+body[data-palette="rose"] {
+  --bg: #301e29;
+  --card: #402937;
+  --text: #fbeaf1;
+  --muted: #e0bbcb;
+  --line: #654454;
+  --accent: #f0b0cc;
+  --accent-soft: #654053;
+  --panel: #472e3c;
+  --shadow: #200f1a2e;
+  --scene: #694357;
+}
+
+.palette-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 8px 20px 0;
+}
+.palette-groups fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.palette-groups legend { padding: 0; margin-bottom: 12px; font-size: 14px; font-weight: 700; }
+.palette-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.palette-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 78px;
+  padding: 9px 2px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 12px;
+}
+.palette-chip {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--palette-chip);
+  box-shadow: inset 0 0 0 1px #0002;
+}
+.palette-choice[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.palette-choice[aria-pressed="true"] .palette-chip::after { content: '✓'; color: #302238; font-size: 18px; }
+.palette-choice[data-palette-mode="dark"] .palette-chip::after { color: #fff; }
+.palette-choice:hover { border-color: var(--accent); }
+.appearance-panel .setting-note { margin: 12px 20px 18px; }
+.preset-card { grid-template-columns: minmax(0, 1fr); }
+.preset-card select { width: 100%; }
+.preset-card .setting-note { margin: 0; line-height: 1.6; }
+.history-note { margin: 0 20px 14px; }
+.history-list { max-height: 440px; overflow-y: auto; }
+.quick-grid > *, .settings-grid > *, .timer-side, .bunny-side { min-width: 0; }
+.focus-task { max-width: 100%; }
+select:disabled { cursor: not-allowed; opacity: .5; }
+
+@media (max-width: 900px) {
+  .palette-groups { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 650px) {
+  .duration-grid input { width: 62px; }
+  .settings-grid .setting-block:nth-child(2) { grid-column: 1 / -1; }
+}
