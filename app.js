@@ -51,6 +51,23 @@ const achievementInfo = [
 ];
 const storageKey = 'bunny-burrow-v3:' + location.pathname.replace(/index\.html$/, '');
 const uiKey = 'bunny-burrow-ui:' + location.pathname.replace(/index\.html$/, '');
+const palettes = {
+  light: [
+    { id: 'blush', name: 'Blush', colour: '#f4b8ce' },
+    { id: 'lavender', name: 'Lavender', colour: '#c8b7ed' },
+    { id: 'sage', name: 'Sage', colour: '#a8c7ae' },
+    { id: 'sky', name: 'Sky', colour: '#a7cbe6' },
+    { id: 'peach', name: 'Peach', colour: '#efbc9e' }
+  ],
+  dark: [
+    { id: 'plum', name: 'Plum', colour: '#76528e' },
+    { id: 'midnight', name: 'Midnight', colour: '#405b89' },
+    { id: 'forest', name: 'Forest', colour: '#3e7363' },
+    { id: 'cocoa', name: 'Cocoa', colour: '#88634c' },
+    { id: 'rose', name: 'Rose', colour: '#8b4966' }
+  ]
+};
+let ui = { focusMode: false, dark: false, lightPalette: 'blush', darkPalette: 'plum' };
 let raw;
 try { raw = JSON.parse(localStorage.getItem(storageKey)); } catch {}
 let timer = new BurrowTimer(raw);
@@ -79,19 +96,58 @@ function announce(message) {
   $('announcement').textContent = message;
 }
 
+function saveUi() {
+  try { localStorage.setItem(uiKey, JSON.stringify(ui)); } catch {}
+}
+
 function setTheme(dark) {
+  ui.dark = dark;
+  const palette = dark ? ui.darkPalette : ui.lightPalette;
   document.body.classList.toggle('dark', dark);
+  document.body.dataset.palette = palette;
   $('theme').innerHTML = dark ? '☀ <span>Daylight</span>' : '☾ <span>Moonlight</span>';
-  $('theme').setAttribute('aria-label', dark ? 'Switch to pink light mode' : 'Switch to purple dark mode');
-  document.querySelector('meta[name="theme-color"]').content = dark ? '#241a35' : '#fce4ed';
-  try { localStorage.setItem('burrow-dark', String(dark)); } catch {}
+  $('theme').setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  const background = getComputedStyle(document.body).getPropertyValue('--bg').trim();
+  document.querySelector('meta[name="theme-color"]').content = background;
+  document.documentElement.style.backgroundColor = background;
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+  for (const mode of ['light', 'dark']) {
+    document.querySelectorAll(`[data-palette-mode="${mode}"]`).forEach(button => {
+      const selected = button.dataset.paletteChoice === ui[mode + 'Palette'];
+      button.setAttribute('aria-pressed', String(selected));
+    });
+  }
+  const choice = palettes[dark ? 'dark' : 'light'].find(item => item.id === palette);
+  $('palette-status').textContent = `${choice.name} ${dark ? 'dark' : 'light'} mode. Each mode remembers your colour.`;
+  saveUi();
+}
+
+function buildPalettePicker() {
+  for (const mode of ['light', 'dark']) {
+    for (const palette of palettes[mode]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'palette-choice';
+      button.dataset.paletteMode = mode;
+      button.dataset.paletteChoice = palette.id;
+      button.style.setProperty('--palette-chip', palette.colour);
+      button.setAttribute('aria-label', `${palette.name} ${mode} palette`);
+      button.innerHTML = `<span class="palette-chip" aria-hidden="true"></span><span>${palette.name}</span>`;
+      button.onclick = () => {
+        ui[mode + 'Palette'] = palette.id;
+        setTheme(mode === 'dark');
+      };
+      $(mode + '-palettes').append(button);
+    }
+  }
 }
 
 function setFocusMode(enabled, requestFullscreen = false) {
   document.body.classList.toggle('focus-mode', enabled);
   $('focus-mode').hidden = enabled;
   $('exit-focus-mode').hidden = !enabled;
-  try { localStorage.setItem(uiKey, JSON.stringify({ focusMode: enabled })); } catch {}
+  ui.focusMode = enabled;
+  saveUi();
   if (enabled && requestFullscreen && document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => {});
   } else if (!enabled && document.fullscreenElement && document.exitFullscreen) {
@@ -100,13 +156,16 @@ function setFocusMode(enabled, requestFullscreen = false) {
 }
 
 try {
-  setTheme(localStorage.getItem('burrow-dark') === 'true');
   const savedUi = JSON.parse(localStorage.getItem(uiKey) || '{}');
-  setFocusMode(savedUi.focusMode === true);
-} catch {
-  setTheme(false);
-  setFocusMode(false);
-}
+  ui.dark = typeof savedUi?.dark === 'boolean' ? savedUi.dark : localStorage.getItem('burrow-dark') === 'true';
+  ui.focusMode = savedUi?.focusMode === true;
+  for (const mode of ['light', 'dark']) {
+    if (palettes[mode].some(palette => palette.id === savedUi?.[mode + 'Palette'])) ui[mode + 'Palette'] = savedUi[mode + 'Palette'];
+  }
+} catch {}
+buildPalettePicker();
+setTheme(ui.dark);
+setFocusMode(ui.focusMode);
 
 function formatClock(milliseconds) {
   const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
@@ -156,7 +215,7 @@ function render() {
   $('heading').innerHTML = s.mode === 'break' ? 'A little rest.<br>You’ve earned it.' : 'Small steps.<br>Happy little hops.';
   $('subheading').textContent = s.mode === 'break' ? 'Your bunny is all grown up. Time for a breather.' : 'Settle in. Your bunny grows while you focus.';
   $('next').textContent = s.mode === 'focus'
-    ? `${s.focusMinutes} min focus · then a ${s.breakMinutes} min breather`
+    ? `${s.focusMinutes} min focus · then a ${s.cycleProgress + 1 >= s.cycleLength ? s.longBreakMinutes + ' min long break' : s.breakMinutes + ' min breather'}`
     : s.isLongBreak ? `${s.longBreakMinutes} minute long break · your cycle is complete` : 'Stretch, sip some water, and rest your eyes.';
   $('break-tip').hidden = s.mode !== 'break';
   $('break-tip').textContent = s.mode === 'break' ? breakSuggestions[s.history.length % breakSuggestions.length] : '';
@@ -209,7 +268,8 @@ function renderCollection() {
 
 function renderInsights() {
   const s = timer.state;
-  const signature = [s.history.length, s.dailyGoal, s.earnedTotal, s.history.at(-1)?.at || 0].join(':');
+  const now = new Date();
+  const signature = [now.getFullYear(), now.getMonth(), now.getDate(), s.history.length, s.dailyGoal, s.earnedTotal, s.history.at(-1)?.at || 0].join(':');
   if (signature === lastInsights) return;
   lastInsights = signature;
   const stats = timer.stats();
@@ -220,7 +280,7 @@ function renderInsights() {
   $('stat-today').textContent = stats.todayMinutes + ' min';
   $('stat-week').textContent = stats.weekMinutes + ' min';
   $('stat-streak').textContent = stats.streak + (stats.streak === 1 ? ' day' : ' days');
-  $('stat-sessions').textContent = String(s.history.length);
+  $('stat-sessions').textContent = String(stats.totalSessions);
   $('stat-bunny').textContent = stats.favouriteBunny === null ? 'Not yet' : companions[stats.favouriteBunny].name;
   $('stat-sound').textContent = stats.favouriteSound ? soundNames[stats.favouriteSound] : 'Not yet';
 
@@ -237,9 +297,9 @@ function renderInsights() {
   });
 
   $('history-list').replaceChildren();
-  const recent = [...s.history].reverse().slice(0, 8);
+  const recent = [...s.history].reverse();
   if (!recent.length) {
-    $('history-list').innerHTML = '<li class="empty-row">Completed focus sessions will appear here.</li>';
+    $('history-list').innerHTML = '<li class="empty-row">No focus sessions in the last 24 hours. Your next completed session will appear here.</li>';
   } else {
     recent.forEach(entry => {
       const item = document.createElement('li');
@@ -293,21 +353,35 @@ function hydrateControls() {
 }
 
 function hydratePresets() {
-  const selected = $('preset').value;
   $('preset').replaceChildren();
+  const current = document.createElement('option');
+  current.value = 'current';
+  current.textContent = 'Your current timings';
+  $('preset').append(current);
   for (const [id, preset] of Object.entries(BURROW_PRESETS)) {
     const option = document.createElement('option');
     option.value = 'builtin:' + id;
-    option.textContent = `${preset.name} · ${preset.focus}/${preset.break}`;
+    option.textContent = `${preset.name} · ${preset.focus} min focus / ${preset.break} min break`;
     $('preset').append(option);
   }
   timer.state.customPresets.forEach((preset, index) => {
     const option = document.createElement('option');
     option.value = 'custom:' + index;
-    option.textContent = `${preset.name} · ${preset.focus}/${preset.break}`;
+    option.textContent = `${preset.name} · ${preset.focus} min focus / ${preset.break} min break`;
     $('preset').append(option);
   });
-  if ([...$('preset').options].some(option => option.value === selected)) $('preset').value = selected;
+  const s = timer.state;
+  const matches = preset => preset.focus === s.focusMinutes && preset.break === s.breakMinutes
+    && preset.longBreak === s.longBreakMinutes && preset.cycle === s.cycleLength;
+  const custom = s.customPresets.findIndex(matches);
+  const builtin = Object.entries(BURROW_PRESETS).find(([, preset]) => matches(preset));
+  $('preset').value = custom >= 0 ? 'custom:' + custom : builtin ? 'builtin:' + builtin[0] : 'current';
+  updatePresetDetails();
+}
+
+function updatePresetDetails() {
+  const preset = selectedPreset();
+  $('preset-details').textContent = `${preset.focus} min focus · ${preset.break} min short break · ${preset.longBreak} min long break after ${preset.cycle} sessions.`;
 }
 
 function mediaMetadata() {
@@ -567,11 +641,12 @@ async function sendNotification(event) {
 
 function tick(silent = false) {
   const bunniesBefore = timer.state.earned.length;
+  const historyBefore = timer.state.history.length;
   const events = timer.advance();
-  if (events.length || timer.state.earned.length !== bunniesBefore) {
+  if (events.length || timer.state.earned.length !== bunniesBefore || timer.state.history.length !== historyBefore) {
     save();
-    syncAmbient(true, events.length > 0);
   }
+  if (events.length) syncAmbient(true, true);
   if (events.length) {
     const last = events.at(-1);
     announce(last.type === 'focus-complete'
@@ -678,6 +753,8 @@ function changeDurations() {
 }
 
 function selectedPreset() {
+  const s = timer.state;
+  if ($('preset').value === 'current') return { focus: s.focusMinutes, break: s.breakMinutes, longBreak: s.longBreakMinutes, cycle: s.cycleLength };
   const [type, value] = $('preset').value.split(':');
   return type === 'builtin' ? BURROW_PRESETS[value] : timer.state.customPresets[Number(value)];
 }
@@ -762,6 +839,7 @@ $('focus-min').onchange = changeDurations;
 $('break-min').onchange = changeDurations;
 $('long-break-min').onchange = changeDurations;
 $('cycle-length').onchange = changeDurations;
+$('preset').onchange = updatePresetDetails;
 $('task').oninput = () => { timer.state.task = $('task').value.slice(0, 100); save(); render(); };
 $('goal').oninput = () => {
   timer.state.dailyGoal = Math.min(20, Math.max(1, Math.round(Number($('goal').value) || 4)));
@@ -786,6 +864,7 @@ $('apply-preset').onclick = () => {
 };
 $('save-preset').onclick = () => {
   $('preset-name').value = '';
+  $('preset-feedback').textContent = '';
   $('preset-dialog').showModal();
   $('preset-name').focus();
 };
@@ -799,6 +878,7 @@ $('confirm-preset').onclick = () => {
   }
   hydratePresets();
   $('preset').value = 'custom:' + (timer.state.customPresets.length - 1);
+  updatePresetDetails();
   save();
   $('preset-dialog').close();
   announce(`${preset.name} was saved on this device.`);
@@ -870,7 +950,7 @@ $('confirm-clear').onclick = () => {
   lastCollection = '';
   save();
   $('clear-dialog').close();
-  announce('Your burrow is clear. Your long-term focus history is still safe.');
+  announce('Your burrow is clear. Your recent sessions and progress totals are still saved.');
   render();
 };
 $('export-backup').onclick = exportBackup;
@@ -923,12 +1003,19 @@ window.addEventListener('storage', event => {
     hydrateControls();
     ambient.pause();
     tick(true);
+    // Persist any expired history removed during restoration, without a tab-to-tab save loop.
+    const updated = JSON.stringify(timer.serialise());
+    const previous = JSON.parse(event.newValue);
+    if (previous.version !== timer.state.version || previous.history?.length !== timer.state.history.length) {
+      localStorage.setItem(storageKey, updated);
+    }
     announce('Your session was updated in another window. Use one window for sound playback.');
   } catch {}
 });
 
 hydrateControls();
 tick(true);
+save(); // Persist migrations and expiry even when the restored timer is idle.
 render();
 if (timer.state.running && currentSound() !== 'none') {
   if (!$('announcement').textContent) announce('Your saved session is up to date. Tap Resume sound to continue listening.');

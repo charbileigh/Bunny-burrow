@@ -66,6 +66,24 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
   presets.start(0);
   assert.equal(presets.applyPreset(BUILTIN_PRESETS.quick), false);
 
+  assert.equal(Object.keys(BUILTIN_PRESETS).length, 8);
+  for (const preset of Object.values(BUILTIN_PRESETS)) {
+    const cycle = new BurrowTimer();
+    cycle.applyPreset(preset);
+    let at = 1000;
+    for (let session = 1; session <= preset.cycle; session++) {
+      cycle.start(at);
+      at += preset.focus * 60000;
+      const completed = cycle.advance(at);
+      assert.equal(completed[0].longBreak, session === preset.cycle, preset.name);
+      assert.equal(cycle.state.remaining, (session === preset.cycle ? preset.longBreak : preset.break) * 60000, preset.name);
+      at += cycle.state.remaining;
+      cycle.advance(at);
+    }
+    assert.equal(cycle.state.cycleProgress, 0, preset.name);
+    assert.equal(cycle.stats(at).totalSessions, preset.cycle, preset.name);
+  }
+
   const audio = new BurrowTimer();
   audio.state.favourites = ['rain', 'lofi_music_box'];
   audio.state.shuffleFavourites = true;
@@ -103,8 +121,10 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
 
   const backup = insights.buildBackup(now);
   const restored = BurrowTimer.fromBackup(JSON.parse(JSON.stringify(backup)), now);
-  assert.equal(restored.state.history.length, 3);
-  assert.equal(restored.state.version, 6);
+  assert.equal(restored.state.history.length, 1);
+  assert.equal(restored.state.version, 7);
+  assert.deepEqual(restored.stats(now), stats, 'History expiry must preserve progress statistics');
+  assert.deepEqual(restored.achievements(now), badges);
   assert.throws(() => BurrowTimer.fromBackup({ app: 'Different app' }), /not a Bunny Burrow/);
 
   const legacy = new BurrowTimer({
@@ -112,7 +132,7 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
     ambience: 'fire', bell: 'bell_glass', volume: .35, bellVolume: .65,
     earned: [0, 7], earnedTotal: 2, mode: 'focus', remaining: 1500000
   }, 5000);
-  assert.equal(legacy.state.version, 6);
+  assert.equal(legacy.state.version, 7);
   assert.equal(legacy.state.earned.length, 2);
   assert.equal(legacy.state.earned[0].at, 5000);
   assert.equal(legacy.state.dailyGoal, 4);
@@ -122,7 +142,7 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
     version: 5, mode: 'focus', remaining: 1500000,
     ambience: 'lofi_jazz_cafe', bell: 'bell_twinkle', notificationsEnabled: true
   });
-  assert.equal(versionFive.state.version, 6);
+  assert.equal(versionFive.state.version, 7);
   assert.equal(versionFive.state.notificationsEnabled, true);
   assert.equal(versionFive.state.countdownNotificationsEnabled, false);
 
@@ -136,6 +156,71 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
   assert.equal(expandedAudio.state.breakAmbience, 'chillwave_aqua_dream');
   assert.equal(expandedAudio.state.bell, 'bell_harbour');
   assert.equal(expandedAudio.state.countdownNotificationsEnabled, true);
+
+  // Exact 24-hour expiry, including history after the visible burrow was cleared.
+  const boundary = new BurrowTimer({
+    version: 6,
+    history: [
+      { at: now - DAY + 1, minutes: 25, task: 'Expiring task details', bunny: 3, sound: 'none' },
+      { at: now - 60000, minutes: 50, task: 'Recent task', bunny: 8, sound: 'rain' }
+    ],
+    customPresets: [{ name: 'My rhythm', focus: 40, break: 8, longBreak: 20, cycle: 3 }],
+    cycleLength: 4, cycleProgress: 2, focusMinutes: 40,
+    task: 'Current task', started: true, running: false, remaining: 123000
+  }, now);
+  boundary.clearBurrow();
+  const beforeExpiry = boundary.stats(now);
+  assert.equal(boundary.state.history.length, 2);
+  assert.equal(boundary.prune(now), 0);
+  assert.equal(boundary.prune(now + 1), 1);
+  assert.equal(boundary.state.history.length, 1);
+  assert.deepEqual(boundary.stats(now + 1), beforeExpiry);
+  assert.equal(boundary.state.remaining, 123000);
+  assert.equal(boundary.state.started, true);
+  assert.equal(boundary.state.cycleProgress, 2);
+  assert.equal(boundary.state.task, 'Current task');
+  const retained = JSON.parse(JSON.stringify(boundary.buildBackup(now + 1)));
+  assert.equal(JSON.stringify(retained).includes('Expiring task details'), false);
+  assert.equal(retained.data.customPresets[0].name, 'My rhythm');
+  const repeatRestore = BurrowTimer.fromBackup(retained, now + 2);
+  repeatRestore.prune(now + 2);
+  assert.equal(repeatRestore.stats(now + 2).totalSessions, 2, 'Restore and repeated expiry must not double-count totals');
+  const muchLater = BurrowTimer.fromBackup(retained, now + DAY * 30);
+  assert.equal(muchLater.state.history.length, 0);
+  assert.equal(muchLater.stats(now + DAY * 30).totalSessions, 2);
+  assert.equal(muchLater.achievements(now + DAY * 30).quiet_companion, true);
+
+  // A completed timer recovered days later credits progress once, without reviving old details.
+  const overdue = new BurrowTimer();
+  overdue.state.task = 'Overdue private task';
+  overdue.start(now);
+  const recovery = now + DAY * 3;
+  const recovered = new BurrowTimer(overdue.serialise(now), recovery);
+  assert.equal(recovered.advance(recovery).length, 2);
+  assert.equal(recovered.state.history.length, 0);
+  assert.equal(recovered.state.earned.length, 0);
+  assert.equal(recovered.stats(recovery).totalSessions, 1);
+  assert.equal(JSON.stringify(recovered.buildBackup(recovery)).includes('Overdue private task'), false);
+  assert.equal(recovered.advance(recovery + 1).length, 0);
+  assert.equal(recovered.stats(recovery + 1).totalSessions, 1);
+
+  const olderProgress = BurrowTimer.fromBackup(backup, now + DAY * 30);
+  assert.equal(olderProgress.state.history.length, 0);
+  assert.equal(olderProgress.stats(now + DAY * 30).streak, 0);
+  assert.equal(olderProgress.achievements(now + DAY * 30).little_routine, true, 'An earned badge stays unlocked');
+
+  // The week must use calendar days, even across daylight-saving changes.
+  const originalTimezone = process.env.TZ;
+  try {
+    process.env.TZ = 'America/New_York';
+    const springMonday = new Date(2026, 2, 9, 0, 30).getTime();
+    const week = new BurrowTimer().stats(springMonday).weekKeys;
+    assert.equal(new Set(week).size, 7);
+    assert.deepEqual(week.slice(-3), ['2026-03-07', '2026-03-08', '2026-03-09']);
+  } finally {
+    if (originalTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  }
 
   assert.equal(localDateKey(now), '2026-09-10');
 
@@ -172,7 +257,7 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
     if (!relative || relative === '/') continue;
     assert.equal(fs.existsSync(__dirname + '/' + relative), true, 'Missing offline asset: ' + relative);
   }
-  assert.match(serviceWorker, /mobile-13-clean-audio/);
+  assert.match(serviceWorker, /mobile-14-palettes-presets-history/);
   assert.match(serviceWorker, /notificationclick/);
   assert.match(app, /bunny-burrow-countdown/);
   assert.match(app, /bunny-burrow-completion/);
@@ -223,7 +308,7 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
   }
   assert.equal(hashes.size, NEW_MUSIC.length + NEW_BELLS.length, 'Every new sound must have distinct audio data');
 
-  console.log('PASS: timer, notification, migration, audio catalogue and offline PWA checks.');
+  console.log('PASS: timer cycles, 24-hour history expiry, retained progress, backup migration, notifications, audio and offline PWA checks.');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;
