@@ -257,7 +257,7 @@ const NEW_BELLS = ['bell_harbour', 'bell_clock_duet'];
     if (!relative || relative === '/') continue;
     assert.equal(fs.existsSync(__dirname + '/' + relative), true, 'Missing offline asset: ' + relative);
   }
-  assert.match(serviceWorker, /mobile-14-palettes-presets-history/);
+  assert.match(serviceWorker, /mobile-15-mode-colour-picker/);
   assert.match(serviceWorker, /notificationclick/);
   assert.match(app, /bunny-burrow-countdown/);
   assert.match(app, /bunny-burrow-completion/);

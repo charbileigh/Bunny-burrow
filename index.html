@@ -21,8 +21,11 @@
     <header>
       <a class="brand" href="./"><span aria-hidden="true">✿</span> bunny burrow<span class="brand-note">a little time to focus</span></a>
       <div class="header-actions">
-        <button id="focus-mode" class="icon-button" type="button">◉ <span>Focus view</span></button>
-        <button id="theme" class="icon-button" type="button" aria-label="Switch to dark mode">☾ <span>Moonlight</span></button>
+        <div class="theme-controls" role="group" aria-label="Colour mode">
+          <button id="light-mode" class="mode-button" type="button" aria-pressed="true" aria-haspopup="dialog" aria-controls="theme-dialog" aria-expanded="false"><span aria-hidden="true">☀</span> Light mode <span aria-hidden="true">⌄</span></button>
+          <button id="dark-mode" class="mode-button" type="button" aria-pressed="false" aria-haspopup="dialog" aria-controls="theme-dialog" aria-expanded="false"><span aria-hidden="true">☾</span> Dark mode <span aria-hidden="true">⌄</span></button>
+        </div>
+        <button id="focus-mode" class="icon-button" type="button" aria-label="Enter focus view">◉ <span>Focus view</span></button>
       </div>
     </header>
 
@@ -91,15 +94,6 @@
           </div>
         </article>
       </section>
-
-      <details class="feature-panel appearance-panel">
-        <summary><span><span class="eyebrow">COLOURS</span><strong>Make this corner yours</strong></span><span aria-hidden="true">＋</span></summary>
-        <div class="palette-groups">
-          <fieldset><legend>Light mode</legend><div id="light-palettes" class="palette-options"></div></fieldset>
-          <fieldset><legend>Dark mode</legend><div id="dark-palettes" class="palette-options"></div></fieldset>
-        </div>
-        <p id="palette-status" class="setting-note" role="status"></p>
-      </details>
 
       <section class="settings-grid" aria-label="Session settings">
         <div class="setting-block">
@@ -260,6 +254,15 @@
 
     <footer><span>One thing at a time. You’re doing just fine.</span><span>Made for softer, more focused days ♡</span></footer>
   </div>
+
+  <dialog id="theme-dialog" aria-labelledby="theme-title" aria-describedby="palette-status">
+    <div class="dialog-heading"><h2 id="theme-title">Light mode colours</h2><button id="close-theme" type="button" class="reset" aria-label="Close colour picker">×</button></div>
+    <p id="palette-status" class="setting-note" role="status"></p>
+    <div class="palette-groups">
+      <fieldset id="light-palette-group"><legend>Choose a light colour</legend><div id="light-palettes" class="palette-options"></div></fieldset>
+      <fieldset id="dark-palette-group" hidden><legend>Choose a dark colour</legend><div id="dark-palettes" class="palette-options"></div></fieldset>
+    </div>
+  </dialog>
 
   <dialog id="install-dialog" aria-labelledby="install-title">
     <div class="dialog-heading"><h2 id="install-title">Your own little burrow</h2><button id="close-install" type="button" class="reset" aria-label="Close installation instructions">×</button></div>

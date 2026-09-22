@@ -57,14 +57,24 @@ const palettes = {
     { id: 'lavender', name: 'Lavender', colour: '#c8b7ed' },
     { id: 'sage', name: 'Sage', colour: '#a8c7ae' },
     { id: 'sky', name: 'Sky', colour: '#a7cbe6' },
-    { id: 'peach', name: 'Peach', colour: '#efbc9e' }
+    { id: 'peach', name: 'Peach', colour: '#efbc9e' },
+    { id: 'buttercup', name: 'Buttercup', colour: '#e8ce79' },
+    { id: 'mint', name: 'Mint', colour: '#91d8c9' },
+    { id: 'coral', name: 'Coral', colour: '#ec9b94' },
+    { id: 'periwinkle', name: 'Periwinkle', colour: '#afbcee' },
+    { id: 'sand', name: 'Sand', colour: '#d2c2a6' }
   ],
   dark: [
     { id: 'plum', name: 'Plum', colour: '#76528e' },
     { id: 'midnight', name: 'Midnight', colour: '#405b89' },
     { id: 'forest', name: 'Forest', colour: '#3e7363' },
     { id: 'cocoa', name: 'Cocoa', colour: '#88634c' },
-    { id: 'rose', name: 'Rose', colour: '#8b4966' }
+    { id: 'rose', name: 'Rose', colour: '#8b4966' },
+    { id: 'charcoal', name: 'Charcoal', colour: '#666c78' },
+    { id: 'ocean', name: 'Ocean', colour: '#306f80' },
+    { id: 'aubergine', name: 'Aubergine', colour: '#84476f' },
+    { id: 'ember', name: 'Ember', colour: '#995638' },
+    { id: 'indigo', name: 'Indigo', colour: '#514d9e' }
   ]
 };
 let ui = { focusMode: false, dark: false, lightPalette: 'blush', darkPalette: 'plum' };
@@ -105,8 +115,11 @@ function setTheme(dark) {
   const palette = dark ? ui.darkPalette : ui.lightPalette;
   document.body.classList.toggle('dark', dark);
   document.body.dataset.palette = palette;
-  $('theme').innerHTML = dark ? '☀ <span>Daylight</span>' : '☾ <span>Moonlight</span>';
-  $('theme').setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  $('light-mode').setAttribute('aria-pressed', String(!dark));
+  $('dark-mode').setAttribute('aria-pressed', String(dark));
+  $('light-palette-group').hidden = dark;
+  $('dark-palette-group').hidden = !dark;
+  $('theme-title').textContent = dark ? 'Dark mode colours' : 'Light mode colours';
   const background = getComputedStyle(document.body).getPropertyValue('--bg').trim();
   document.querySelector('meta[name="theme-color"]').content = background;
   document.documentElement.style.backgroundColor = background;
@@ -118,7 +131,7 @@ function setTheme(dark) {
     });
   }
   const choice = palettes[dark ? 'dark' : 'light'].find(item => item.id === palette);
-  $('palette-status').textContent = `${choice.name} ${dark ? 'dark' : 'light'} mode. Each mode remembers your colour.`;
+  $('palette-status').textContent = `${choice.name} is selected. Choose a colour below; your choice is saved for ${dark ? 'dark' : 'light'} mode.`;
   saveUi();
 }
 
@@ -136,10 +149,26 @@ function buildPalettePicker() {
       button.onclick = () => {
         ui[mode + 'Palette'] = palette.id;
         setTheme(mode === 'dark');
+        closeThemePicker();
       };
       $(mode + '-palettes').append(button);
     }
   }
+}
+
+function openThemePicker(dark) {
+  setTheme(dark);
+  $('light-mode').setAttribute('aria-expanded', String(!dark));
+  $('dark-mode').setAttribute('aria-expanded', String(dark));
+  $('theme-dialog').showModal();
+  const selected = document.querySelector(`[data-palette-mode="${dark ? 'dark' : 'light'}"][aria-pressed="true"]`);
+  selected?.focus();
+}
+
+function closeThemePicker() {
+  $('theme-dialog').close();
+  $('light-mode').setAttribute('aria-expanded', 'false');
+  $('dark-mode').setAttribute('aria-expanded', 'false');
 }
 
 function setFocusMode(enabled, requestFullscreen = false) {
@@ -818,7 +847,18 @@ async function importBackup(file) {
   }
 }
 
-$('theme').onclick = () => setTheme(!document.body.classList.contains('dark'));
+$('light-mode').onclick = () => openThemePicker(false);
+$('dark-mode').onclick = () => openThemePicker(true);
+$('close-theme').onclick = closeThemePicker;
+$('theme-dialog').addEventListener('close', () => {
+  $('light-mode').setAttribute('aria-expanded', 'false');
+  $('dark-mode').setAttribute('aria-expanded', 'false');
+});
+$('theme-dialog').addEventListener('click', event => {
+  if (event.target !== $('theme-dialog')) return;
+  const box = $('theme-dialog').getBoundingClientRect();
+  if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) closeThemePicker();
+});
 $('focus-mode').onclick = () => setFocusMode(true, true);
 $('exit-focus-mode').onclick = () => setFocusMode(false);
 $('start').onclick = () => timer.state.running ? pause() : start();

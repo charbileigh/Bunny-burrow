@@ -2,7 +2,7 @@
 
 // Change VERSION whenever you release new app files. Cache names include the
 // deployment scope, so another app on the same host keeps its own caches.
-const VERSION = 'mobile-14-palettes-presets-history';
+const VERSION = 'mobile-15-mode-colour-picker';
 const PREFIX = 'bunny-burrow:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const ASSETS = [

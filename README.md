@@ -6,8 +6,8 @@ your phone's browser. No native wrapper, server, build step or API key is needed
 
 ## What changed
 
-- Five light palettes (Blush, Lavender, Sage, Sky and Peach) and five dark
-  palettes (Plum, Midnight, Forest, Cocoa and Rose), with a saved choice per mode.
+- Ten light palettes and ten dark palettes, with a saved choice per mode.
+  The Light mode and Dark mode buttons each open their colour picker directly.
 - Eight built-in focus rhythms with a preview of their short break, long break
   and cycle length. Existing custom presets remain available.
 - Detailed session history expires 24 hours after each session finishes.
@@ -78,7 +78,7 @@ this deliverable stays a PWA as requested.
    If the old version remains, repeat after the update has downloaded.
 6. Wait for **Ready offline** before going offline.
 
-The new service worker uses cache version `mobile-14-palettes-presets-history`. An update waits
+The new service worker uses cache version `mobile-15-mode-colour-picker`. An update waits
 until old app windows close so it does not replace files during a focus session.
 Normal updates do not clear saved progress. Do not clear site data unless you
 intend to reset the app's saved timer, settings and bunnies as well.
@@ -142,10 +142,17 @@ competing audio.
 
 ## Colours and focus rhythms
 
-Open **Colours → Make this corner yours** to choose a light or dark palette.
-Choosing a colour also switches to that mode. The header's Daylight/Moonlight
-button switches between your saved choices. Colour choices stay on the current
-device, like the existing focus-view preference.
+Click **Light mode** or **Dark mode** at the top of the app. The selected mode
+opens immediately with its ten colour choices. Pick a colour to apply it and
+return to the timer. Clicking the active mode again lets you choose another
+colour; clicking the other mode restores its saved colour and opens its picker.
+Close the picker with its close button, Escape or a click outside it.
+Colour choices stay on the current device, like the existing focus-view preference.
+
+| Mode | Existing colours retained | Five additional colours |
+| --- | --- | --- |
+| Light | Blush, Lavender, Sage, Sky, Peach | Buttercup, Mint, Coral, Periwinkle, Sand |
+| Dark | Plum, Midnight, Forest, Cocoa, Rose | Charcoal, Ocean, Aubergine, Ember, Indigo |
 
 Choose a focus preset, review its timings, then tap **Apply preset**. Short
 breaks follow each focus session until the longer break at the end of the cycle.
